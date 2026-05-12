@@ -1,0 +1,24 @@
+┌──────────────────────────────┐
+│ Cliente Windows 10/11         │
+│ GIS pesado, BI, reportes      │
+└───────────────┬──────────────┘
+                │
+                │ API REST
+                │
+┌───────────────▼──────────────┐
+│ Backend / API                 │
+│ FastAPI / Servicios de negocio│
+└───────────────┬──────────────┘
+                │
+                │
+┌───────────────▼──────────────┐
+│ PostgreSQL + PostGIS          │
+│ Base de datos principal       │
+└───────────────▲──────────────┘
+                │
+                │ Sincronización
+                │
+┌───────────────┴──────────────┐
+│ Android 11+ Offline           │
+│ SQLite local + cámara + GPS   │
+└──────────────────────────────┘
