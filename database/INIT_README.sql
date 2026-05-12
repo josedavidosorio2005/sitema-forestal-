@@ -1,0 +1,59 @@
+-- ============================================================
+-- FMS - SQLite Master Init Script
+-- Ejecutar en orden para crear la BD completa del cliente móvil
+-- ============================================================
+-- Orden de ejecución:
+--   1. 00_core.sql           → RBAC, Sync Queue, Audit, Custody, Config
+--   2. 01_module_a.sql       → Silvicultura (Predios→Rodales→Parcelas→Árboles, Suelos, Alertas)
+--   3. 02_module_b.sql       → Aprovechamiento (OT, Tala, Trozas, Cables, Simulaciones)
+--   4. 03_module_c.sql       → Logística (Manifiestos, Recepción, Conciliación)
+--   5. 04_module_d.sql       → Aserrío (Máquinas, Batches, Paquetes, Lineaje, Secado)
+--   6. 05_module_e.sql       → Finanzas (Costeo ABC, Contratistas, Liquidaciones)
+--   7. 06_module_f.sql       → BI Views, Triggers, Seed Data
+
+-- NOTA: SQLite no soporta .read nativo en todas las plataformas.
+-- En Android (Kotlin/Room), cada archivo se ejecuta como migration step.
+-- Para testing en CLI:
+--   sqlite3 fms_mobile.db < 00_core.sql
+--   sqlite3 fms_mobile.db < 01_module_a_silviculture.sql
+--   sqlite3 fms_mobile.db < 02_module_b_harvesting.sql
+--   sqlite3 fms_mobile.db < 03_module_c_logistics.sql
+--   sqlite3 fms_mobile.db < 04_module_d_sawmill.sql
+--   sqlite3 fms_mobile.db < 05_module_e_finance.sql
+--   sqlite3 fms_mobile.db < 06_module_f_bi_views.sql
+
+-- ============================================================
+-- RESUMEN DE TABLAS (32 tablas + 5 vistas + 4 triggers)
+-- ============================================================
+-- CORE (6 tablas):
+--   roles, permissions, role_permissions, users,
+--   sync_queue, audit_log, custody_events, global_config
+--
+-- MODULE A - Silvicultura (6 tablas):
+--   predios, rodales, parcelas, trees,
+--   soil_analyses, species_nutrient_requirements, agronomic_alerts
+--
+-- MODULE B - Aprovechamiento (7 tablas):
+--   work_orders, felling_events, logs,
+--   cables, cable_inspections, tension_simulations
+--
+-- MODULE C - Logística (4 tablas):
+--   transport_manifests, manifest_logs,
+--   plant_receptions, reception_logs
+--
+-- MODULE D - Aserrío (8 tablas):
+--   machines, sawmill_batches, batch_input_logs,
+--   sku_catalog, packages, package_log_lineage,
+--   machine_downtimes, drying_processes, drying_packages
+--
+-- MODULE E - Finanzas (5 tablas):
+--   cost_activities, cost_entries, cost_accumulator,
+--   contractors, contractor_settlements, settlement_details
+--
+-- VIEWS (5):
+--   vw_full_traceability, vw_oee_summary, vw_shrinkage_report,
+--   vw_cost_per_m3, vw_active_alerts
+--
+-- TRIGGERS (4):
+--   trg_alert_require_photo, trg_tree_calc_volume_insert,
+--   trg_audit_immutable, trg_custody_immutable
