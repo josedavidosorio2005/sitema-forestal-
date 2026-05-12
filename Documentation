@@ -1,0 +1,43 @@
+Documentación Técnica: Sistema de Comunicación LoRa + ESP32 para Dron Forestal Autónomo
+1. Objetivo del sistema
+Diseñar un sistema de comunicación inalámbrica de largo alcance basado en ESP32 y módulos LoRa SX1278 para transmitir coordenadas GPS, telemetría del dron y datos de misión entre el dron y una estación terrestre.
+2. Arquitectura general
+El sistema se compone de una estación terrestre y un dron forestal autónomo. El dron incorpora una Pixhawk para control de vuelo, un ESP32 para gestión de comunicaciones y un módulo LoRa para transmisión inalámbrica.
+3. Función del ESP32
+El ESP32 actúa como nodo de comunicación inteligente. Lee datos provenientes de la Pixhawk mediante UART, procesa la información y la transmite vía LoRa.
+4. Función de LoRa
+La tecnología LoRa permite comunicaciones de largo alcance y bajo consumo energético, ideal para ambientes forestales donde no existe infraestructura WiFi o celular.
+5. Componentes principales
+• ESP32-WROOM
+• Módulo LoRa SX1278 433 MHz
+• Pixhawk 2.4.8
+• GPS Neo-M8N
+• Antenas LoRa
+• Regulador DC-DC
+• Batería LiPo
+6. Comunicación Pixhawk ↔ ESP32
+La comunicación se realiza mediante UART serial:
+Pixhawk TX → ESP32 RX
+Pixhawk RX → ESP32 TX
+GND → GND
+7. Flujo de información
+Pixhawk → ESP32 → LoRa TX → LoRa RX → ESP32 Base → Computador
+8. Variables transmitidas
+• Coordenadas GPS
+• Altitud
+• Velocidad
+• Estado de batería
+• Modo de vuelo
+9. MAVLink
+La Pixhawk utiliza el protocolo MAVLink para transmisión de telemetría. El ESP32 puede interpretar estos paquetes y reenviarlos mediante LoRa.
+10. Alcance estimado
+En entornos forestales el alcance estimado es de 1 a 3 km, y hasta 10 km en línea de vista despejada.
+11. Recomendaciones técnicas
+• Separar antena GPS de antena LoRa
+• Evitar interferencias electromagnéticas
+• Usar reguladores estables de 3.3V
+• Configurar FailSafe RTL en Pixhawk
+12. Arquitectura recomendada
+GPS Neo-M8N → Pixhawk → ESP32 → LoRa SX1278 → Estación terrestre
+13. Conclusión
+La arquitectura basada en Pixhawk, ESP32 y LoRa proporciona una solución robusta, escalable y adecuada para monitoreo forestal autónomo con transmisión de datos en tiempo real.
