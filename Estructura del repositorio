@@ -1,0 +1,30 @@
+fms-forest-management-system/
+├── .github/
+│   ├── workflows/
+│   └── ISSUE_TEMPLATE/
+├── android/
+│   └── calculation-service/
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   └── domain/
+│   │       └── calculations.py
+│   ├── tests/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── requirements-dev.txt
+├── database/
+│   ├── schema_postgresql_postgis.sql
+│   ├── mobile_sqlite_subset.sql
+│   ├── seed_minimal.sql
+│   ├── chain_of_custody_example.json
+│   └── chain_of_custody_schema.json
+├── docs/
+├── scripts/
+├── docker-compose.yml
+├── Makefile
+├── README.md
+├── REQUIREMENTS.md
+├── RUNBOOK.md
+├── ROADMAP.md
+└── SECURITY.md
