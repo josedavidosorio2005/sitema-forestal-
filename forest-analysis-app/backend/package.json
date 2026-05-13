@@ -9,7 +9,8 @@
     "dev": "nodemon src/index.js",
     "migrate": "node src/scripts/migrate.js",
     "seed": "node src/scripts/seed.js",
-    "check": "node --check src/index.js"
+    "check": "node --check src/index.js && node --check src/routes/validators.js && node --check src/controllers/subzonesController.js && node --check src/routes/subzones.js && node --check src/utils/geojson.js",
+    "health": "node src/scripts/health-check.js"
   },
   "keywords": [
     "forest",

@@ -1,0 +1,25 @@
+.subzone-form {
+  gap: 13px;
+}
+
+.form-grid-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.geometry-note {
+  border: 1px solid #b8d7ce;
+  border-radius: 8px;
+  background: #edf8f5;
+  color: #164d43;
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .form-grid-two {
+    grid-template-columns: 1fr;
+  }
+}

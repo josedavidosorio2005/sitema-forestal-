@@ -57,6 +57,12 @@
   margin-top: 12px;
 }
 
+.stack-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .management-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
@@ -127,6 +133,18 @@
   border-radius: 8px;
   padding: 24px;
   text-align: center;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.section-header-row .sidebar-section-title {
+  margin-bottom: 0;
 }
 
 .species-type {

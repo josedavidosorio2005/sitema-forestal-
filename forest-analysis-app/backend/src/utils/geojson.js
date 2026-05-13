@@ -112,3 +112,50 @@ export function getPolygonCentroid(geometry) {
     lat: totals.lat / ring.length,
   };
 }
+
+function pointOnSegment(point, start, end) {
+  const [x, y] = point;
+  const [x1, y1] = start;
+  const [x2, y2] = end;
+  const epsilon = 1e-10;
+  const cross = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1);
+
+  if (Math.abs(cross) > epsilon) return false;
+
+  return (
+    x >= Math.min(x1, x2) - epsilon &&
+    x <= Math.max(x1, x2) + epsilon &&
+    y >= Math.min(y1, y2) - epsilon &&
+    y <= Math.max(y1, y2) + epsilon
+  );
+}
+
+function pointInRing(point, ring) {
+  let inside = false;
+
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const current = ring[i];
+    const previous = ring[j];
+
+    if (pointOnSegment(point, previous, current)) return true;
+
+    const intersects =
+      current[1] > point[1] !== previous[1] > point[1] &&
+      point[0] <
+        ((previous[0] - current[0]) * (point[1] - current[1])) /
+          (previous[1] - current[1]) +
+          current[0];
+
+    if (intersects) inside = !inside;
+  }
+
+  return inside;
+}
+
+export function polygonIsInsidePolygon(childGeometry, parentGeometry) {
+  const child = normalizePolygonGeometry(childGeometry);
+  const parent = normalizePolygonGeometry(parentGeometry);
+  const parentRing = parent.coordinates[0];
+
+  return child.coordinates[0].slice(0, -1).every((point) => pointInRing(point, parentRing));
+}

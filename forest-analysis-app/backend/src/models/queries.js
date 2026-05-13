@@ -53,11 +53,34 @@ CREATE TABLE IF NOT EXISTS reports (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS subzones (
+  id SERIAL PRIMARY KEY,
+  zone_id INTEGER REFERENCES zones(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  use_type VARCHAR(50) NOT NULL CHECK (use_type IN ('plantacion', 'recoleccion', 'conservacion', 'mixto')),
+  operation_type VARCHAR(50) NOT NULL CHECK (operation_type IN ('sembrar', 'recolectar', 'monitorear')),
+  slope_degrees DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (slope_degrees >= 0 AND slope_degrees <= 90),
+  soil_type VARCHAR(255) NOT NULL,
+  tree_species_id INTEGER REFERENCES species(id) ON DELETE SET NULL,
+  tree_common_name VARCHAR(255),
+  tree_count INTEGER NOT NULL DEFAULT 0 CHECK (tree_count >= 0),
+  geometry_geojson JSONB,
+  area_m2 DOUBLE PRECISION,
+  area_ha DOUBLE PRECISION,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_zones_user_id ON zones(user_id);
 CREATE INDEX IF NOT EXISTS idx_zones_deleted_at ON zones(deleted_at);
 CREATE INDEX IF NOT EXISTS idx_species_user_id ON species(user_id);
 CREATE INDEX IF NOT EXISTS idx_species_type ON species(type);
 CREATE INDEX IF NOT EXISTS idx_reports_zone_id ON reports(zone_id);
+CREATE INDEX IF NOT EXISTS idx_subzones_zone_id ON subzones(zone_id);
+CREATE INDEX IF NOT EXISTS idx_subzones_use_type ON subzones(use_type);
+CREATE INDEX IF NOT EXISTS idx_subzones_deleted_at ON subzones(deleted_at);
 `;
 
 export const POSTGIS_OPTIONAL_SQL = `
@@ -124,11 +147,34 @@ CREATE TABLE IF NOT EXISTS reports (
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS subzones (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  zone_id INTEGER REFERENCES zones(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  use_type TEXT NOT NULL CHECK (use_type IN ('plantacion', 'recoleccion', 'conservacion', 'mixto')),
+  operation_type TEXT NOT NULL CHECK (operation_type IN ('sembrar', 'recolectar', 'monitorear')),
+  slope_degrees REAL NOT NULL DEFAULT 0 CHECK (slope_degrees >= 0 AND slope_degrees <= 90),
+  soil_type TEXT NOT NULL,
+  tree_species_id INTEGER REFERENCES species(id) ON DELETE SET NULL,
+  tree_common_name TEXT,
+  tree_count INTEGER NOT NULL DEFAULT 0 CHECK (tree_count >= 0),
+  geometry_geojson TEXT,
+  area_m2 REAL,
+  area_ha REAL,
+  notes TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TEXT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_zones_user_id ON zones(user_id);
 CREATE INDEX IF NOT EXISTS idx_zones_deleted_at ON zones(deleted_at);
 CREATE INDEX IF NOT EXISTS idx_species_user_id ON species(user_id);
 CREATE INDEX IF NOT EXISTS idx_species_type ON species(type);
 CREATE INDEX IF NOT EXISTS idx_reports_zone_id ON reports(zone_id);
+CREATE INDEX IF NOT EXISTS idx_subzones_zone_id ON subzones(zone_id);
+CREATE INDEX IF NOT EXISTS idx_subzones_use_type ON subzones(use_type);
+CREATE INDEX IF NOT EXISTS idx_subzones_deleted_at ON subzones(deleted_at);
 `;
 
 export const zonesQueries = {
@@ -249,6 +295,65 @@ export const reportsQueries = {
         observations = $3,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = $1
+    RETURNING *;
+  `,
+};
+
+export const subzonesQueries = {
+  create: `
+    INSERT INTO subzones (
+      zone_id,
+      name,
+      use_type,
+      operation_type,
+      slope_degrees,
+      soil_type,
+      tree_species_id,
+      tree_common_name,
+      tree_count,
+      geometry_geojson,
+      area_m2,
+      area_ha,
+      notes
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    RETURNING *;
+  `,
+  getByZoneId: `
+    SELECT sz.*, s.common_name AS species_common_name, s.scientific_name AS species_scientific_name
+    FROM subzones sz
+    LEFT JOIN species s ON sz.tree_species_id = s.id
+    WHERE sz.zone_id = $1 AND sz.deleted_at IS NULL
+    ORDER BY sz.created_at DESC;
+  `,
+  getById: `
+    SELECT sz.*, s.common_name AS species_common_name, s.scientific_name AS species_scientific_name
+    FROM subzones sz
+    LEFT JOIN species s ON sz.tree_species_id = s.id
+    WHERE sz.id = $1 AND sz.deleted_at IS NULL;
+  `,
+  update: `
+    UPDATE subzones
+    SET name = $2,
+        use_type = $3,
+        operation_type = $4,
+        slope_degrees = $5,
+        soil_type = $6,
+        tree_species_id = $7,
+        tree_common_name = $8,
+        tree_count = $9,
+        geometry_geojson = $10,
+        area_m2 = $11,
+        area_ha = $12,
+        notes = $13,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND deleted_at IS NULL
+    RETURNING *;
+  `,
+  softDelete: `
+    UPDATE subzones
+    SET deleted_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND deleted_at IS NULL
     RETURNING *;
   `,
 };

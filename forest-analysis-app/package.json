@@ -9,6 +9,8 @@
     "seed": "npm --prefix backend run seed",
     "start:backend": "npm --prefix backend start",
     "start:frontend": "npm --prefix frontend start",
-    "build": "npm --prefix frontend run build"
+    "build": "npm --prefix frontend run build",
+    "check": "npm --prefix backend run check && npm --prefix frontend run build",
+    "health": "npm --prefix backend run health"
   }
 }

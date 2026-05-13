@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -46,6 +46,14 @@ export const reportsService = {
   getById: (id) => apiClient.get(`/reports/${id}`),
   getByZoneId: (zoneId) => apiClient.get(`/reports/zone/${zoneId}`),
   update: (id, data) => apiClient.put(`/reports/${id}`, data),
+};
+
+export const subzonesService = {
+  create: (zoneId, data) => apiClient.post(`/zones/${zoneId}/subzones`, data),
+  getByZoneId: (zoneId) => apiClient.get(`/zones/${zoneId}/subzones`),
+  getById: (id) => apiClient.get(`/subzones/${id}`),
+  update: (id, data) => apiClient.put(`/subzones/${id}`, data),
+  delete: (id) => apiClient.delete(`/subzones/${id}`),
 };
 
 export default apiClient;

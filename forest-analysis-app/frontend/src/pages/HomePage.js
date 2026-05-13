@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import MapComponent from '../components/MapComponent';
 import ReportPanel from '../components/ReportPanel';
 import Sidebar from '../components/Sidebar';
+import SubzoneForm from '../components/SubzoneForm';
+import SubzonesPanel from '../components/SubzonesPanel';
 import ZoneForm from '../components/ZoneForm';
-import { reportsService, speciesService, zonesService } from '../services/api';
+import { reportsService, speciesService, subzonesService, zonesService } from '../services/api';
 import { formatNumber, getErrorMessage } from '../utils/helpers';
 import './HomePage.css';
 
@@ -12,8 +14,12 @@ function HomePage() {
   const [species, setSpecies] = useState([]);
   const [currentPolygon, setCurrentPolygon] = useState(null);
   const [selectedZone, setSelectedZone] = useState(null);
+  const [selectedSubzone, setSelectedSubzone] = useState(null);
+  const [subzones, setSubzones] = useState([]);
   const [report, setReport] = useState(null);
+  const [drawMode, setDrawMode] = useState('zone');
   const [showZoneForm, setShowZoneForm] = useState(false);
+  const [showSubzoneForm, setShowSubzoneForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -36,15 +42,27 @@ function HomePage() {
 
   function handlePolygonDraw(payload) {
     setCurrentPolygon(payload);
+    setMessage(null);
+
+    if (drawMode === 'subzone' && selectedZone) {
+      setShowSubzoneForm(true);
+      setShowZoneForm(false);
+      return;
+    }
+
     setSelectedZone(null);
+    setSelectedSubzone(null);
+    setSubzones([]);
     setReport(null);
     setShowZoneForm(true);
-    setMessage(null);
+    setShowSubzoneForm(false);
+    setDrawMode('zone');
   }
 
   function handlePolygonClear() {
     setCurrentPolygon(null);
     setShowZoneForm(false);
+    setShowSubzoneForm(false);
   }
 
   async function handleSaveZone(formData) {
@@ -76,6 +94,10 @@ function HomePage() {
       setReport(reportResponse.data.data);
       setCurrentPolygon(null);
       setShowZoneForm(false);
+      setShowSubzoneForm(false);
+      setSubzones([]);
+      setSelectedSubzone(null);
+      setDrawMode('zone');
       setMessage({ type: 'success', text: 'Zona guardada y reporte generado.' });
     } catch (error) {
       setMessage({ type: 'error', text: getErrorMessage(error) });
@@ -88,6 +110,9 @@ function HomePage() {
     setSelectedZone(zone);
     setCurrentPolygon(null);
     setShowZoneForm(false);
+    setShowSubzoneForm(false);
+    setSelectedSubzone(null);
+    setDrawMode('zone');
     setMessage(null);
 
     try {
@@ -95,6 +120,66 @@ function HomePage() {
       setReport(response.data.data);
     } catch (error) {
       setReport(null);
+    }
+
+    try {
+      const response = await subzonesService.getByZoneId(zone.id);
+      setSubzones(response.data.data);
+    } catch (error) {
+      setSubzones([]);
+      setMessage({ type: 'error', text: getErrorMessage(error) });
+    }
+  }
+
+  function startSubzoneDrawing() {
+    if (!selectedZone) return;
+
+    setDrawMode('subzone');
+    setCurrentPolygon(null);
+    setShowZoneForm(false);
+    setShowSubzoneForm(false);
+    setMessage({
+      type: 'success',
+      text: `Dibuja el poligono de la subzona dentro de ${selectedZone.name}.`,
+    });
+  }
+
+  function startSubzoneForm() {
+    if (!selectedZone) return;
+
+    setDrawMode('zone');
+    setCurrentPolygon(null);
+    setShowZoneForm(false);
+    setShowSubzoneForm(true);
+    setMessage(null);
+  }
+
+  async function handleSaveSubzone(formData) {
+    if (!selectedZone) {
+      setMessage({ type: 'error', text: 'Selecciona una zona antes de guardar la subzona.' });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setMessage(null);
+
+      const response = await subzonesService.create(selectedZone.id, {
+        ...formData,
+        ...(currentPolygon ? { geometry: currentPolygon.geometry } : {}),
+      });
+      const savedSubzone = response.data.data;
+
+      setSubzones((current) => [savedSubzone, ...current]);
+      setSelectedSubzone(savedSubzone);
+      setCurrentPolygon(null);
+      setShowSubzoneForm(false);
+      setDrawMode('zone');
+      setMessage({ type: 'success', text: 'Subzona guardada dentro de la zona.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: getErrorMessage(error) });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -107,10 +192,19 @@ function HomePage() {
           onPolygonClear={handlePolygonClear}
           zones={zones}
           selectedZone={selectedZone}
+          subzones={subzones}
+          selectedSubzone={selectedSubzone}
           onSelectZone={handleSelectZone}
+          onSelectSubzone={setSelectedSubzone}
           onClearSelection={() => {
             setSelectedZone(null);
+            setSelectedSubzone(null);
+            setSubzones([]);
             setReport(null);
+            setCurrentPolygon(null);
+            setShowZoneForm(false);
+            setShowSubzoneForm(false);
+            setDrawMode('zone');
           }}
         />
       </section>
@@ -120,7 +214,9 @@ function HomePage() {
 
         {currentPolygon && (
           <section className="sidebar-section">
-            <h3 className="sidebar-section-title">Poligono activo</h3>
+            <h3 className="sidebar-section-title">
+              {drawMode === 'subzone' ? 'Poligono de subzona' : 'Poligono activo'}
+            </h3>
             <div className="metric-grid">
               <div className="metric">
                 <span>Metros cuadrados</span>
@@ -131,9 +227,14 @@ function HomePage() {
                 <strong>{formatNumber(currentPolygon.area.areaHa)} ha</strong>
               </div>
             </div>
-            {!showZoneForm && (
+            {drawMode === 'zone' && !showZoneForm && (
               <button className="btn btn-primary btn-block mt-2" onClick={() => setShowZoneForm(true)}>
                 Guardar zona
+              </button>
+            )}
+            {drawMode === 'subzone' && !showSubzoneForm && (
+              <button className="btn btn-primary btn-block mt-2" onClick={() => setShowSubzoneForm(true)}>
+                Guardar subzona
               </button>
             )}
           </section>
@@ -152,17 +253,57 @@ function HomePage() {
           </section>
         )}
 
+        {showSubzoneForm && selectedZone && (
+          <section className="sidebar-section">
+            <h3 className="sidebar-section-title">Datos de subzona</h3>
+            <SubzoneForm
+              onSubmit={handleSaveSubzone}
+              onCancel={() => {
+                setShowSubzoneForm(false);
+                setDrawMode('zone');
+              }}
+              loading={loading}
+              speciesOptions={species}
+              hasGeometry={Boolean(currentPolygon)}
+            />
+          </section>
+        )}
+
         {!currentPolygon && !selectedZone && (
           <section className="sidebar-section">
             <h3 className="sidebar-section-title">Flujo MVP</h3>
             <p className="sidebar-copy">
-              Navega el mapa, dibuja un poligono forestal y guarda la zona. El reporte separa
-              especies probables de especies confirmadas manualmente por el cliente.
+              Navega el mapa, dibuja una zona forestal y luego selecciona esa zona para dividirla
+              en subzonas de plantacion, recoleccion o conservacion.
             </p>
           </section>
         )}
 
         <ReportPanel report={report} zone={selectedZone} />
+
+        {selectedZone && !showSubzoneForm && (
+          <section className="sidebar-section">
+            <h3 className="sidebar-section-title">Subzonas operativas</h3>
+            <p className="sidebar-copy">
+              Divide la zona en sectores internos para indicar pendiente, suelo, arbol y cantidad.
+            </p>
+            <div className="stack-actions mt-2">
+              <button className="btn btn-primary btn-block" onClick={startSubzoneForm}>
+                Nueva subzona
+              </button>
+              <button className="btn btn-secondary btn-block" onClick={startSubzoneDrawing}>
+                Dibujar poligono
+              </button>
+            </div>
+            <div className="mt-2">
+              <SubzonesPanel
+                subzones={subzones}
+                selectedSubzone={selectedSubzone}
+                onSelect={setSelectedSubzone}
+              />
+            </div>
+          </section>
+        )}
 
         {zones.length > 0 && (
           <section className="sidebar-section">
