@@ -1,0 +1,54 @@
+.zones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.zone-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #d8e5dd;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.zone-card:hover,
+.zone-card.active {
+  border-color: #8dbb9d;
+  background: #f3faf5;
+}
+
+.zone-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.zone-card-header h2 {
+  font-size: 1.06rem;
+  margin: 0;
+}
+
+.zone-card-header span,
+.zone-card p {
+  color: #607169;
+  font-size: 0.86rem;
+}
+
+.zone-card-metrics {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.zone-card-metrics strong {
+  background: #edf7f1;
+  color: #183c29;
+  border-radius: 7px;
+  padding: 7px 9px;
+  font-size: 0.88rem;
+}
