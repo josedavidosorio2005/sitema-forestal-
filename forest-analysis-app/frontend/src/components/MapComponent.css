@@ -1,0 +1,89 @@
+.map-shell {
+  position: relative;
+  height: 100%;
+  min-height: 560px;
+  background: #dce8df;
+}
+
+.map {
+  height: 100%;
+  min-height: 560px;
+  width: 100%;
+}
+
+.map-actions {
+  position: absolute;
+  left: 58px;
+  top: 12px;
+  z-index: 650;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.map-actions button {
+  background: rgba(255, 255, 255, 0.95);
+  color: #10251b;
+  border: 1px solid #cbd8d0;
+  box-shadow: 0 6px 18px rgba(15, 35, 26, 0.16);
+}
+
+.map-area-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 7px;
+  background: rgba(15, 36, 27, 0.92);
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 35, 26, 0.18);
+}
+
+.map-area-chip span {
+  color: #cde7d6;
+}
+
+.map-note {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  z-index: 650;
+  max-width: 680px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #33443a;
+  font-size: 0.86rem;
+  box-shadow: 0 8px 24px rgba(15, 35, 26, 0.16);
+}
+
+.leaflet-control-layers,
+.leaflet-pm-toolbar {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+@media (max-width: 700px) {
+  .map-shell,
+  .map {
+    min-height: 460px;
+  }
+
+  .map-actions {
+    left: 10px;
+    right: 10px;
+    top: 54px;
+  }
+
+  .map-actions button,
+  .map-area-chip {
+    font-size: 0.82rem;
+    padding: 8px 10px;
+  }
+
+  .map-note {
+    font-size: 0.78rem;
+  }
+}
