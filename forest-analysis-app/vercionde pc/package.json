@@ -1,0 +1,74 @@
+{
+  "name": "forest-analysis-pc",
+  "version": "1.0.0",
+  "private": true,
+  "homepage": ".",
+  "main": "electron/main.cjs",
+  "description": "Sistema Forestal para Windows con mapa, zonas, subzonas, especies y reportes",
+  "author": "Forest Analysis",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "desktop": "electron .",
+    "package:exe": "npm run build && electron-builder --win portable",
+    "package:folder": "npm run build && electron-builder --win dir",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "@geoman-io/leaflet-geoman-free": "^2.17.0",
+    "axios": "^1.6.0",
+    "leaflet": "^1.9.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1",
+    "react-router-dom": "^6.20.0",
+    "react-scripts": "5.0.1"
+  },
+  "devDependencies": {
+    "electron": "^37.8.0",
+    "electron-builder": "^26.0.12"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "build": {
+    "extends": null,
+    "appId": "com.forestanalysis.pc",
+    "productName": "Sistema Forestal PC",
+    "artifactName": "Sistema-Forestal-PC-${version}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "icon.ico",
+      "target": [
+        "portable"
+      ],
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "portable": {
+      "artifactName": "Sistema-Forestal-PC-${version}-portable.exe"
+    },
+    "asar": true
+  }
+}
