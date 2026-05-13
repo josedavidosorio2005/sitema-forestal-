@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: forest-analysis-api
+    env: node
+    plan: free
+    region: ohio # Optional: oregon, frankfurt, ohio, singapore
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_CLIENT
+        value: postgres
+      - key: DATABASE_URL
+        fromDatabase:
+          name: forest-analysis-db
+          property: connectionString
+      - key: FRONTEND_URL
+        value: https://josedavidosorio2005.github.io
+      - key: AUTO_MIGRATE
+        value: "true"
+
+databases:
+  - name: forest-analysis-db
+    databaseName: forest_analysis
+    user: postgres
+    plan: free
+    region: ohio
+    postgresMajorVersion: "15"
