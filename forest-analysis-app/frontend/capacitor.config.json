@@ -1,0 +1,6 @@
+{
+  "appId": "com.forestanalysis.app",
+  "appName": "Sistema Forestal",
+  "webDir": "build",
+  "bundledWebRuntime": false
+}

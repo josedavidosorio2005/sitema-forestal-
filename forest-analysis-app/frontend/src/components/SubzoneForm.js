@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getTreeColor } from '../utils/helpers';
 import './SubzoneForm.css';
 
 const USE_TYPES = [
@@ -34,6 +35,12 @@ function SubzoneForm({
     notes: initialData.notes || '',
   });
   const [errors, setErrors] = useState({});
+  const selectedSpecies = speciesOptions.find(
+    (species) => Number(species.id) === Number(formData.tree_species_id)
+  );
+  const treePreviewName =
+    selectedSpecies?.common_name || formData.tree_common_name || 'Sin especie';
+  const treePreviewColor = getTreeColor(treePreviewName);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -203,6 +210,11 @@ function SubzoneForm({
         />
         {errors.tree_common_name && <small className="field-error">{errors.tree_common_name}</small>}
       </label>
+
+      <div className="tree-color-preview">
+        <span style={{ backgroundColor: treePreviewColor }} />
+        <strong>{treePreviewName}</strong>
+      </div>
 
       <label className="field">
         <span>Notas</span>

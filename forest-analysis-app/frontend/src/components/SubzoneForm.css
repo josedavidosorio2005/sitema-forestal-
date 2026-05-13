@@ -18,6 +18,27 @@
   font-weight: 700;
 }
 
+.tree-color-preview {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #d6e3dc;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 9px 10px;
+  color: #173d2a;
+  font-size: 0.86rem;
+}
+
+.tree-color-preview span {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border: 2px solid #ffffff;
+  border-radius: 5px;
+  box-shadow: 0 0 0 1px rgba(15, 35, 26, 0.2);
+}
+
 @media (max-width: 520px) {
   .form-grid-two {
     grid-template-columns: 1fr;

@@ -1,14 +1,49 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
-import { GeoJSON, LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet';
+import {
+  CircleMarker,
+  GeoJSON,
+  LayersControl,
+  MapContainer,
+  Polygon,
+  Polyline,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
 import '@geoman-io/leaflet-geoman-free';
-import { calculatePolygonArea, closeRing, formatNumber } from '../utils/helpers';
+import {
+  calculatePolygonArea,
+  closeRing,
+  formatNumber,
+  getSubzoneOperationLabel,
+  getSubzoneTreeColor,
+  getSubzoneTreeName,
+  getSubzoneUseLabel,
+} from '../utils/helpers';
 import './MapComponent.css';
 
 const DEFAULT_CENTER = [4.65, -74.08];
 const DEFAULT_ZOOM = 6;
+
+function drawPathOptions(drawMode) {
+  return drawMode === 'subzone'
+    ? {
+        color: '#2563eb',
+        fillColor: '#60a5fa',
+        fillOpacity: 0.28,
+        weight: 2,
+        dashArray: '6 4',
+      }
+    : {
+        color: '#1f7a43',
+        fillColor: '#22c55e',
+        fillOpacity: 0.28,
+        weight: 2,
+      };
+}
 
 function polygonPayloadFromLayer(layer) {
   const geometry = layer.toGeoJSON().geometry;
@@ -22,7 +57,24 @@ function polygonPayloadFromLayer(layer) {
   return { geometry: polygon, area };
 }
 
-function DrawingControls({ onPolygonDraw, onPolygonClear }) {
+function polygonPayloadFromLatLngPoints(points) {
+  const ring = closeRing(points.map(([lat, lng]) => [lng, lat]));
+  const polygon = {
+    type: 'Polygon',
+    coordinates: [ring],
+  };
+  const area = calculatePolygonArea(ring);
+
+  return { geometry: polygon, area };
+}
+
+function DrawingControls({
+  drawMode,
+  drawRequestId = 0,
+  clearRequestId = 0,
+  onPolygonDraw,
+  onPolygonClear,
+}) {
   const map = useMap();
   const drawnLayerRef = useRef(null);
   const callbackRef = useRef({ onPolygonDraw, onPolygonClear });
@@ -36,6 +88,7 @@ function DrawingControls({ onPolygonDraw, onPolygonClear }) {
 
     map.pm.addControls({
       position: 'topleft',
+      drawPolygon: drawMode !== 'subzone',
       drawMarker: false,
       drawCircle: false,
       drawCircleMarker: false,
@@ -46,12 +99,7 @@ function DrawingControls({ onPolygonDraw, onPolygonClear }) {
       rotateMode: false,
     });
 
-    map.pm.setPathOptions({
-      color: '#1f7a43',
-      fillColor: '#22c55e',
-      fillOpacity: 0.28,
-      weight: 2,
-    });
+    map.pm.setPathOptions(drawPathOptions(drawMode));
 
     function syncLayer(layer) {
       if (!(layer instanceof L.Polygon)) return;
@@ -78,6 +126,7 @@ function DrawingControls({ onPolygonDraw, onPolygonClear }) {
         callbackRef.current.onPolygonClear?.();
       });
       syncLayer(layer);
+      map.pm.disableDraw('Polygon');
     }
 
     function handleRemove(event) {
@@ -95,7 +144,40 @@ function DrawingControls({ onPolygonDraw, onPolygonClear }) {
       map.off('pm:remove', handleRemove);
       map.pm.removeControls();
     };
-  }, [map]);
+  }, [drawMode, map]);
+
+  useEffect(() => {
+    if (!map.pm || drawRequestId === 0) return;
+
+    if (drawnLayerRef.current) {
+      map.removeLayer(drawnLayerRef.current);
+      drawnLayerRef.current = null;
+      callbackRef.current.onPolygonClear?.();
+    }
+
+    map.pm.disableDraw('Polygon');
+    map.pm.setPathOptions(drawPathOptions(drawMode));
+
+    if (drawMode === 'subzone') {
+      return;
+    }
+
+    map.pm.enableDraw('Polygon', {
+      snappable: true,
+      allowSelfIntersection: false,
+      pathOptions: drawPathOptions(drawMode),
+    });
+  }, [drawMode, drawRequestId, map]);
+
+  useEffect(() => {
+    if (!map.pm || clearRequestId === 0) return;
+
+    map.pm.disableDraw('Polygon');
+    if (drawnLayerRef.current) {
+      map.removeLayer(drawnLayerRef.current);
+      drawnLayerRef.current = null;
+    }
+  }, [clearRequestId, map]);
 
   useEffect(() => {
     const handler = () => {
@@ -113,8 +195,62 @@ function DrawingControls({ onPolygonDraw, onPolygonClear }) {
   return null;
 }
 
-function SavedZonesLayer({ zones, selectedZone, onSelectZone }) {
+function ManualSubzoneDrawingLayer({ enabled, points, finished, onAddPoint }) {
+  useMapEvents({
+    click(event) {
+      if (!enabled || finished) return;
+      onAddPoint([event.latlng.lat, event.latlng.lng]);
+    },
+  });
+
+  if (points.length === 0) return null;
+
+  const markerOptions = {
+    radius: 5,
+    color: '#1d4ed8',
+    fillColor: '#ffffff',
+    fillOpacity: 1,
+    weight: 3,
+  };
+
+  return (
+    <>
+      {points.length >= 2 && !finished && (
+        <Polyline
+          positions={points}
+          pathOptions={{
+            color: '#2563eb',
+            weight: 3,
+            dashArray: '8 6',
+          }}
+        />
+      )}
+      {points.length >= 3 && (
+        <Polygon
+          positions={points}
+          pathOptions={{
+            color: '#2563eb',
+            fillColor: '#60a5fa',
+            fillOpacity: finished ? 0.34 : 0.18,
+            weight: finished ? 3 : 2,
+            dashArray: finished ? null : '8 6',
+          }}
+        />
+      )}
+      {points.map((point, index) => (
+        <CircleMarker
+          key={`${point[0]}-${point[1]}-${index}`}
+          center={point}
+          pathOptions={markerOptions}
+        />
+      ))}
+    </>
+  );
+}
+
+function SavedZonesLayer({ zones, selectedZone, drawMode, onSelectZone }) {
   const map = useMap();
+  const canSelect = drawMode !== 'subzone';
 
   useEffect(() => {
     if (!selectedZone?.geometry) return;
@@ -130,15 +266,28 @@ function SavedZonesLayer({ zones, selectedZone, onSelectZone }) {
     <>
       {zones.map((zone) => (
         <GeoJSON
-          key={`${zone.id}-${selectedZone?.id === zone.id ? 'active' : 'idle'}`}
+          key={`${zone.id}-${selectedZone?.id === zone.id ? 'active' : 'idle'}-${canSelect ? 'select' : 'draw'}`}
           data={zone.geometry}
-          eventHandlers={{
-            click: () => onSelectZone?.(zone),
-          }}
+          interactive={canSelect}
+          bubblingMouseEvents={canSelect}
+          eventHandlers={
+            canSelect
+              ? {
+                  click: () => onSelectZone?.(zone),
+                }
+              : {}
+          }
           style={{
             color: selectedZone?.id === zone.id ? '#f59e0b' : '#116b3b',
             fillColor: selectedZone?.id === zone.id ? '#fbbf24' : '#22c55e',
-            fillOpacity: selectedZone?.id === zone.id ? 0.34 : 0.18,
+            fillOpacity:
+              drawMode === 'subzone'
+                ? selectedZone?.id === zone.id
+                  ? 0.18
+                  : 0.08
+                : selectedZone?.id === zone.id
+                ? 0.34
+                : 0.18,
             weight: selectedZone?.id === zone.id ? 3 : 2,
           }}
         />
@@ -147,8 +296,9 @@ function SavedZonesLayer({ zones, selectedZone, onSelectZone }) {
   );
 }
 
-function SavedSubzonesLayer({ subzones, selectedSubzone, onSelectSubzone }) {
+function SavedSubzonesLayer({ subzones, selectedSubzone, drawMode, onSelectSubzone }) {
   const map = useMap();
+  const canSelect = drawMode !== 'subzone';
 
   useEffect(() => {
     if (!selectedSubzone?.geometry) return;
@@ -164,17 +314,34 @@ function SavedSubzonesLayer({ subzones, selectedSubzone, onSelectSubzone }) {
     <>
       {subzones.map((subzone) => (
         <GeoJSON
-          key={`subzone-${subzone.id}-${selectedSubzone?.id === subzone.id ? 'active' : 'idle'}`}
+          key={`subzone-${subzone.id}-${selectedSubzone?.id === subzone.id ? 'active' : 'idle'}-${canSelect ? 'select' : 'draw'}`}
           data={subzone.geometry}
-          eventHandlers={{
-            click: () => onSelectSubzone?.(subzone),
+          interactive={canSelect}
+          bubblingMouseEvents={canSelect}
+          eventHandlers={
+            canSelect
+              ? {
+                  click: () => onSelectSubzone?.(subzone),
+                }
+              : {}
+          }
+          onEachFeature={(feature, layer) => {
+            layer.bindTooltip(
+              `${subzone.name} | ${getSubzoneTreeName(subzone)} | ${getSubzoneUseLabel(subzone.use_type)} / ${getSubzoneOperationLabel(subzone.operation_type)} | ${formatNumber(subzone.tree_count, 0)} arboles`,
+              { sticky: true }
+            );
           }}
-          style={{
-            color: selectedSubzone?.id === subzone.id ? '#0f766e' : '#2563eb',
-            fillColor: selectedSubzone?.id === subzone.id ? '#14b8a6' : '#60a5fa',
-            fillOpacity: selectedSubzone?.id === subzone.id ? 0.32 : 0.2,
-            weight: selectedSubzone?.id === subzone.id ? 3 : 2,
-            dashArray: selectedSubzone?.id === subzone.id ? null : '5 4',
+          style={() => {
+            const color = getSubzoneTreeColor(subzone);
+            const active = selectedSubzone?.id === subzone.id;
+
+            return {
+              color,
+              fillColor: color,
+              fillOpacity: drawMode === 'subzone' ? 0.14 : active ? 0.46 : 0.28,
+              weight: active ? 4 : 2,
+              dashArray: active ? null : '5 4',
+            };
           }}
         />
       ))}
@@ -182,7 +349,46 @@ function SavedSubzonesLayer({ subzones, selectedSubzone, onSelectSubzone }) {
   );
 }
 
-function MapActions({ currentPolygon, onClear }) {
+function SubzoneLegend({ subzones }) {
+  const legendItems = useMemo(() => {
+    const bySpecies = new Map();
+
+    subzones.forEach((subzone) => {
+      const treeName = getSubzoneTreeName(subzone);
+      const current = bySpecies.get(treeName) || {
+        treeName,
+        color: getSubzoneTreeColor(subzone),
+        count: 0,
+        subzones: 0,
+      };
+
+      current.count += Number(subzone.tree_count || 0);
+      current.subzones += 1;
+      bySpecies.set(treeName, current);
+    });
+
+    return Array.from(bySpecies.values()).sort((a, b) => b.count - a.count);
+  }, [subzones]);
+
+  if (legendItems.length === 0) return null;
+
+  return (
+    <div className="map-legend">
+      <strong>Subzonas por arbol</strong>
+      {legendItems.map((item) => (
+        <div key={item.treeName} className="map-legend-item">
+          <span style={{ backgroundColor: item.color }} />
+          <p>
+            {item.treeName}
+            <small>{formatNumber(item.count, 0)} arboles / {item.subzones} subzonas</small>
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MapActions({ currentPolygon, drawMode, onClear }) {
   const map = useMap();
 
   return (
@@ -195,7 +401,7 @@ function MapActions({ currentPolygon, onClear }) {
       </button>
       {currentPolygon && (
         <div className="map-area-chip">
-          <span>{formatNumber(currentPolygon.area.areaM2)} m2</span>
+          <span>{drawMode === 'subzone' ? 'Subzona' : 'Zona'}</span>
           <strong>{formatNumber(currentPolygon.area.areaHa)} ha</strong>
         </div>
       )}
@@ -211,10 +417,15 @@ function MapComponent({
   selectedZone = null,
   subzones = [],
   selectedSubzone = null,
+  drawMode = 'zone',
+  drawRequestId = 0,
+  clearRequestId = 0,
   onSelectZone,
   onSelectSubzone,
   onClearSelection,
 }) {
+  const [manualSubzonePoints, setManualSubzonePoints] = useState([]);
+  const [manualSubzoneFinished, setManualSubzoneFinished] = useState(false);
   const safeZones = useMemo(
     () => zones.filter((zone) => zone.geometry?.type === 'Polygon'),
     [zones]
@@ -223,6 +434,48 @@ function MapComponent({
     () => subzones.filter((subzone) => subzone.geometry?.type === 'Polygon'),
     [subzones]
   );
+  const manualSubzoneActive = drawMode === 'subzone';
+
+  useEffect(() => {
+    if (drawMode !== 'subzone') {
+      setManualSubzonePoints([]);
+      setManualSubzoneFinished(false);
+    }
+  }, [drawMode]);
+
+  useEffect(() => {
+    if (drawRequestId === 0 || drawMode !== 'subzone') return;
+    setManualSubzonePoints([]);
+    setManualSubzoneFinished(false);
+  }, [drawMode, drawRequestId]);
+
+  useEffect(() => {
+    if (clearRequestId === 0) return;
+    setManualSubzonePoints([]);
+    setManualSubzoneFinished(false);
+  }, [clearRequestId]);
+
+  const handleManualSubzonePoint = useCallback((point) => {
+    setManualSubzonePoints((current) => [...current, point]);
+  }, []);
+
+  const finishManualSubzone = useCallback(() => {
+    if (manualSubzonePoints.length < 3) return;
+    const payload = polygonPayloadFromLatLngPoints(manualSubzonePoints);
+    setManualSubzoneFinished(true);
+    onPolygonDraw?.(payload);
+  }, [manualSubzonePoints, onPolygonDraw]);
+
+  const undoManualSubzonePoint = useCallback(() => {
+    if (manualSubzoneFinished) return;
+    setManualSubzonePoints((current) => current.slice(0, -1));
+  }, [manualSubzoneFinished]);
+
+  const resetManualSubzone = useCallback(() => {
+    setManualSubzonePoints([]);
+    setManualSubzoneFinished(false);
+    onPolygonClear?.();
+  }, [onPolygonClear]);
 
   return (
     <div className="map-shell">
@@ -244,19 +497,77 @@ function MapComponent({
           </LayersControl.BaseLayer>
         </LayersControl>
 
-        <SavedZonesLayer zones={safeZones} selectedZone={selectedZone} onSelectZone={onSelectZone} />
+        <SavedZonesLayer
+          zones={safeZones}
+          selectedZone={selectedZone}
+          drawMode={drawMode}
+          onSelectZone={onSelectZone}
+        />
         <SavedSubzonesLayer
           subzones={safeSubzones}
           selectedSubzone={selectedSubzone}
+          drawMode={drawMode}
           onSelectSubzone={onSelectSubzone}
         />
-        <DrawingControls onPolygonDraw={onPolygonDraw} onPolygonClear={onPolygonClear} />
-        <MapActions currentPolygon={currentPolygon} onClear={onClearSelection} />
+        <DrawingControls
+          drawMode={drawMode}
+          drawRequestId={drawRequestId}
+          clearRequestId={clearRequestId}
+          onPolygonDraw={onPolygonDraw}
+          onPolygonClear={onPolygonClear}
+        />
+        <ManualSubzoneDrawingLayer
+          enabled={manualSubzoneActive && !manualSubzoneFinished}
+          points={manualSubzonePoints}
+          finished={manualSubzoneFinished}
+          onAddPoint={handleManualSubzonePoint}
+        />
+        <MapActions currentPolygon={currentPolygon} drawMode={drawMode} onClear={onClearSelection} />
       </MapContainer>
 
+      <SubzoneLegend subzones={safeSubzones} />
+      {drawMode === 'subzone' && (
+        <>
+          <div className="draw-mode-banner">
+            Haz clic dentro de la zona para marcar puntos. Con 3 puntos o mas, finaliza la subzona.
+          </div>
+          <div className="manual-draw-panel">
+            <strong>Dibujo de subzona</strong>
+            <span>
+              {manualSubzoneFinished
+                ? 'Poligono listo para guardar'
+                : `${manualSubzonePoints.length} puntos marcados`}
+            </span>
+            <div className="manual-draw-actions">
+              <button
+                type="button"
+                onClick={finishManualSubzone}
+                disabled={manualSubzonePoints.length < 3 || manualSubzoneFinished}
+              >
+                Finalizar subzona
+              </button>
+              <button
+                type="button"
+                onClick={undoManualSubzonePoint}
+                disabled={manualSubzonePoints.length === 0 || manualSubzoneFinished}
+              >
+                Deshacer punto
+              </button>
+              <button
+                type="button"
+                onClick={resetManualSubzone}
+                disabled={manualSubzonePoints.length === 0 && !currentPolygon}
+              >
+                Reiniciar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
       <div className="map-note">
-        Dibuja un poligono. El calculo de cobertura vegetal es una simulacion inicial, no una
-        identificacion exacta de especies.
+        {selectedZone
+          ? `Zona seleccionada: ${selectedZone.name}. Las subzonas se pintan por especie sembrada.`
+          : 'Dibuja o selecciona una zona para crear subzonas internas.'}
       </div>
     </div>
   );

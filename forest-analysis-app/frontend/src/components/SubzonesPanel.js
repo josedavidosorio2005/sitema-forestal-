@@ -2,6 +2,8 @@ import React from 'react';
 import {
   formatNumber,
   getSubzoneOperationLabel,
+  getSubzoneTreeColor,
+  getSubzoneTreeName,
   getSubzoneUseLabel,
 } from '../utils/helpers';
 import './SubzonesPanel.css';
@@ -54,7 +56,13 @@ function SubzonesPanel({
             >
               <div className="subzone-card-header">
                 <div>
-                  <h4>{subzone.name}</h4>
+                  <h4>
+                    <span
+                      className="subzone-color-dot"
+                      style={{ backgroundColor: getSubzoneTreeColor(subzone) }}
+                    />
+                    {subzone.name}
+                  </h4>
                   <span>{getSubzoneUseLabel(subzone.use_type)} / {getSubzoneOperationLabel(subzone.operation_type)}</span>
                 </div>
                 <strong>{formatNumber(subzone.tree_count, 0)}</strong>
@@ -62,8 +70,12 @@ function SubzonesPanel({
               <div className="subzone-details">
                 <span>{formatNumber(subzone.slope_degrees, 1)} grados</span>
                 <span>{subzone.soil_type}</span>
-                <span>{subzone.species_common_name || subzone.tree_common_name}</span>
-                {subzone.area_ha ? <span>{formatNumber(subzone.area_ha)} ha</span> : null}
+                <span>{getSubzoneTreeName(subzone)}</span>
+                {subzone.area_ha ? (
+                  <span>{formatNumber(subzone.area_ha)} ha</span>
+                ) : (
+                  <span>Sin poligono</span>
+                )}
               </div>
               {(onEdit || onDelete) && (
                 <div className="row-actions">
