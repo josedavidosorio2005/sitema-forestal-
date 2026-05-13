@@ -79,6 +79,27 @@ export function getSpeciesTypeClass(type) {
   return `species-type species-type-${type || 'default'}`;
 }
 
+export function getSubzoneUseLabel(useType) {
+  const labels = {
+    plantacion: 'Plantacion',
+    recoleccion: 'Recoleccion',
+    conservacion: 'Conservacion',
+    mixto: 'Mixto',
+  };
+
+  return labels[useType] || useType || 'Sin uso';
+}
+
+export function getSubzoneOperationLabel(operationType) {
+  const labels = {
+    sembrar: 'Sembrar',
+    recolectar: 'Recolectar',
+    monitorear: 'Monitorear',
+  };
+
+  return labels[operationType] || operationType || 'Sin operacion';
+}
+
 export function getErrorMessage(error) {
   return error?.friendlyMessage || error?.response?.data?.message || error?.message || 'Error inesperado.';
 }

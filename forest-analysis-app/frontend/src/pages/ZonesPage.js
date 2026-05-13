@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import ReportPanel from '../components/ReportPanel';
 import Sidebar from '../components/Sidebar';
+import SubzoneForm from '../components/SubzoneForm';
+import SubzonesPanel from '../components/SubzonesPanel';
 import ZoneForm from '../components/ZoneForm';
-import { reportsService, speciesService, zonesService } from '../services/api';
+import { reportsService, speciesService, subzonesService, zonesService } from '../services/api';
 import { formatDate, formatNumber, getErrorMessage } from '../utils/helpers';
 import './ZonesPage.css';
 
@@ -11,7 +13,11 @@ function ZonesPage() {
   const [species, setSpecies] = useState([]);
   const [selectedZone, setSelectedZone] = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [subzones, setSubzones] = useState([]);
+  const [selectedSubzone, setSelectedSubzone] = useState(null);
   const [editingZone, setEditingZone] = useState(null);
+  const [editingSubzone, setEditingSubzone] = useState(null);
+  const [showSubzoneForm, setShowSubzoneForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -38,6 +44,9 @@ function ZonesPage() {
   async function selectZone(zone) {
     setSelectedZone(zone);
     setEditingZone(null);
+    setEditingSubzone(null);
+    setShowSubzoneForm(false);
+    setSelectedSubzone(null);
     setMessage(null);
 
     try {
@@ -45,6 +54,14 @@ function ZonesPage() {
       setSelectedReport(response.data.data);
     } catch {
       setSelectedReport(null);
+    }
+
+    try {
+      const response = await subzonesService.getByZoneId(zone.id);
+      setSubzones(response.data.data);
+    } catch (error) {
+      setSubzones([]);
+      setMessage({ type: 'error', text: getErrorMessage(error) });
     }
   }
 
@@ -76,6 +93,8 @@ function ZonesPage() {
       if (selectedZone?.id === zoneId) {
         setSelectedZone(null);
         setSelectedReport(null);
+        setSelectedSubzone(null);
+        setSubzones([]);
       }
       setMessage({ type: 'success', text: 'Zona eliminada.' });
     } catch (error) {
@@ -96,6 +115,95 @@ function ZonesPage() {
       setMessage({ type: 'error', text: getErrorMessage(error) });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleCreateSubzone(formData) {
+    if (!selectedZone) return;
+
+    try {
+      setLoading(true);
+      const response = await subzonesService.create(selectedZone.id, formData);
+      const createdSubzone = response.data.data;
+      setSubzones((current) => [createdSubzone, ...current]);
+      setSelectedSubzone(createdSubzone);
+      setShowSubzoneForm(false);
+      setMessage({ type: 'success', text: 'Subzona creada.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: getErrorMessage(error) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleUpdateSubzone(formData) {
+    if (!editingSubzone) return;
+
+    try {
+      setLoading(true);
+      const response = await subzonesService.update(editingSubzone.id, formData);
+      const updatedSubzone = response.data.data;
+      setSubzones((current) =>
+        current.map((subzone) => (subzone.id === updatedSubzone.id ? updatedSubzone : subzone))
+      );
+      setSelectedSubzone(updatedSubzone);
+      setEditingSubzone(null);
+      setShowSubzoneForm(false);
+      setMessage({ type: 'success', text: 'Subzona actualizada.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: getErrorMessage(error) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteSubzone(subzone) {
+    const confirmed = window.confirm(`Eliminar la subzona "${subzone.name}"?`);
+    if (!confirmed) return;
+
+    try {
+      await subzonesService.delete(subzone.id);
+      setSubzones((current) => current.filter((item) => item.id !== subzone.id));
+      if (selectedSubzone?.id === subzone.id) setSelectedSubzone(null);
+      if (editingSubzone?.id === subzone.id) setEditingSubzone(null);
+      setMessage({ type: 'success', text: 'Subzona eliminada.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: getErrorMessage(error) });
+    }
+  }
+
+  function openCreateSubzone() {
+    if (!selectedZone) {
+      setMessage({ type: 'error', text: 'Selecciona una zona antes de crear subzonas.' });
+      return;
+    }
+
+    setEditingSubzone(null);
+    setShowSubzoneForm(true);
+  }
+
+  async function openCreateSubzoneForZone(zone) {
+    setSelectedZone(zone);
+    setEditingZone(null);
+    setEditingSubzone(null);
+    setSelectedSubzone(null);
+    setShowSubzoneForm(true);
+    setMessage(null);
+
+    try {
+      const [reportResponse, subzonesResponse] = await Promise.allSettled([
+        zonesService.getReport(zone.id),
+        subzonesService.getByZoneId(zone.id),
+      ]);
+
+      setSelectedReport(
+        reportResponse.status === 'fulfilled' ? reportResponse.value.data.data : null
+      );
+      setSubzones(
+        subzonesResponse.status === 'fulfilled' ? subzonesResponse.value.data.data : []
+      );
+    } catch (error) {
+      setMessage({ type: 'error', text: getErrorMessage(error) });
     }
   }
 
@@ -139,10 +247,21 @@ function ZonesPage() {
                     onClick={(event) => {
                       event.stopPropagation();
                       setEditingZone(zone);
+                      setEditingSubzone(null);
+                      setShowSubzoneForm(false);
                       setSelectedZone(zone);
                     }}
                   >
                     Editar
+                  </button>
+                  <button
+                    className="btn btn-small btn-primary"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openCreateSubzoneForZone(zone);
+                    }}
+                  >
+                    Subzona
                   </button>
                   <button
                     className="btn btn-small btn-danger"
@@ -160,7 +279,7 @@ function ZonesPage() {
         )}
       </main>
 
-      <Sidebar title={editingZone ? 'Editar zona' : 'Detalle'}>
+      <Sidebar title={editingZone ? 'Editar zona' : showSubzoneForm ? 'Subzona' : 'Detalle'}>
         {editingZone ? (
           <section className="sidebar-section">
             <ZoneForm
@@ -169,6 +288,26 @@ function ZonesPage() {
               onCancel={() => setEditingZone(null)}
               loading={loading}
               speciesOptions={species}
+            />
+          </section>
+        ) : showSubzoneForm ? (
+          <section className="sidebar-section">
+            <h3 className="sidebar-section-title">
+              {editingSubzone ? 'Editar subzona' : 'Nueva subzona'}
+            </h3>
+            <p className="sidebar-copy">
+              Esta subzona queda asociada a {selectedZone?.name}. Si necesitas poligono exacto, dibujala desde el mapa.
+            </p>
+            <SubzoneForm
+              initialData={editingSubzone || {}}
+              onSubmit={editingSubzone ? handleUpdateSubzone : handleCreateSubzone}
+              onCancel={() => {
+                setEditingSubzone(null);
+                setShowSubzoneForm(false);
+              }}
+              loading={loading}
+              speciesOptions={species}
+              hasGeometry={Boolean(editingSubzone?.geometry)}
             />
           </section>
         ) : (
@@ -183,6 +322,26 @@ function ZonesPage() {
               </section>
             )}
             <ReportPanel report={selectedReport} zone={selectedZone} />
+            {selectedZone && (
+              <section className="sidebar-section">
+                <div className="section-header-row">
+                  <h3 className="sidebar-section-title">Subzonas</h3>
+                  <button type="button" className="btn btn-small btn-primary" onClick={openCreateSubzone}>
+                    Nueva
+                  </button>
+                </div>
+                <SubzonesPanel
+                  subzones={subzones}
+                  selectedSubzone={selectedSubzone}
+                  onSelect={setSelectedSubzone}
+                  onEdit={(subzone) => {
+                    setEditingSubzone(subzone);
+                    setShowSubzoneForm(true);
+                  }}
+                  onDelete={handleDeleteSubzone}
+                />
+              </section>
+            )}
           </>
         )}
       </Sidebar>

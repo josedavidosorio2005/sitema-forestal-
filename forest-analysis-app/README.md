@@ -114,6 +114,8 @@ Si tienes PostGIS instalado, cambia `ENABLE_POSTGIS=true`. La migracion agrega u
 Backend: `backend/.env.example`
 - `DB_CLIENT`: `postgres` o `sqlite`
 - `DATABASE_URL`: alternativa completa para PostgreSQL
+- `TRUST_PROXY`: activar en despliegues detras de proxy como Render
+- `RATE_LIMIT_WINDOW_MS` y `RATE_LIMIT_MAX`: limite basico de solicitudes por IP
 - `ENABLE_POSTGIS`: activa estructura PostGIS si esta disponible
 - `SQLITE_FILE`: ruta del archivo SQLite local
 - `AUTO_MIGRATE`: crea tablas al arrancar si esta en `true`
@@ -121,6 +123,9 @@ Backend: `backend/.env.example`
 Frontend: `frontend/.env.example`
 - `REACT_APP_API_URL=http://localhost:5000/api`
 - placeholders para Mapbox o Google Maps futuros
+
+Guia de usuario final:
+- `USER_GUIDE.md`
 
 ## Endpoints principales
 
@@ -130,6 +135,8 @@ Zonas:
 - `GET /api/zones/:id`
 - `DELETE /api/zones/:id`
 - `GET /api/zones/:id/report`
+- `GET /api/zones/:id/subzones`
+- `POST /api/zones/:id/subzones`
 
 Especies:
 - `POST /api/species`
@@ -143,6 +150,14 @@ Reportes:
 - `GET /api/reports`
 - `GET /api/reports/:id`
 - `GET /api/zones/:id/report`
+
+Subzonas:
+- `GET /api/subzones/:id`
+- `PUT /api/subzones/:id`
+- `DELETE /api/subzones/:id`
+
+Cada subzona permite guardar uso del terreno, operacion prevista, inclinacion, tipo de suelo,
+arbol seleccionado o escrito manualmente, cantidad de arboles y poligono opcional dentro de la zona.
 
 ## Integraciones preparadas
 

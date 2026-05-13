@@ -147,6 +147,41 @@ function SavedZonesLayer({ zones, selectedZone, onSelectZone }) {
   );
 }
 
+function SavedSubzonesLayer({ subzones, selectedSubzone, onSelectSubzone }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!selectedSubzone?.geometry) return;
+
+    const layer = L.geoJSON(selectedSubzone.geometry);
+    const bounds = layer.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 18 });
+    }
+  }, [map, selectedSubzone]);
+
+  return (
+    <>
+      {subzones.map((subzone) => (
+        <GeoJSON
+          key={`subzone-${subzone.id}-${selectedSubzone?.id === subzone.id ? 'active' : 'idle'}`}
+          data={subzone.geometry}
+          eventHandlers={{
+            click: () => onSelectSubzone?.(subzone),
+          }}
+          style={{
+            color: selectedSubzone?.id === subzone.id ? '#0f766e' : '#2563eb',
+            fillColor: selectedSubzone?.id === subzone.id ? '#14b8a6' : '#60a5fa',
+            fillOpacity: selectedSubzone?.id === subzone.id ? 0.32 : 0.2,
+            weight: selectedSubzone?.id === subzone.id ? 3 : 2,
+            dashArray: selectedSubzone?.id === subzone.id ? null : '5 4',
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
 function MapActions({ currentPolygon, onClear }) {
   const map = useMap();
 
@@ -174,12 +209,19 @@ function MapComponent({
   onPolygonClear,
   zones = [],
   selectedZone = null,
+  subzones = [],
+  selectedSubzone = null,
   onSelectZone,
+  onSelectSubzone,
   onClearSelection,
 }) {
   const safeZones = useMemo(
     () => zones.filter((zone) => zone.geometry?.type === 'Polygon'),
     [zones]
+  );
+  const safeSubzones = useMemo(
+    () => subzones.filter((subzone) => subzone.geometry?.type === 'Polygon'),
+    [subzones]
   );
 
   return (
@@ -203,6 +245,11 @@ function MapComponent({
         </LayersControl>
 
         <SavedZonesLayer zones={safeZones} selectedZone={selectedZone} onSelectZone={onSelectZone} />
+        <SavedSubzonesLayer
+          subzones={safeSubzones}
+          selectedSubzone={selectedSubzone}
+          onSelectSubzone={onSelectSubzone}
+        />
         <DrawingControls onPolygonDraw={onPolygonDraw} onPolygonClear={onPolygonClear} />
         <MapActions currentPolygon={currentPolygon} onClear={onClearSelection} />
       </MapContainer>

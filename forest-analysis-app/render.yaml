@@ -18,6 +18,12 @@ services:
           property: connectionString
       - key: FRONTEND_URL
         value: https://josedavidosorio2005.github.io
+      - key: TRUST_PROXY
+        value: "true"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX
+        value: "300"
       - key: AUTO_MIGRATE
         value: "true"
 
