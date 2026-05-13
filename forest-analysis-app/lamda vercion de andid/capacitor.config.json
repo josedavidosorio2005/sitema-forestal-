@@ -1,0 +1,19 @@
+{
+  "appId": "com.forestanalysis.lamda",
+  "appName": "Sistema Forestal Android",
+  "webDir": "build",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#0f241b",
+      "showSpinner": true,
+      "spinnerColor": "#4ade80"
+    }
+  }
+}
+

@@ -1,0 +1,138 @@
+.report-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #17251d;
+}
+
+.empty-panel {
+  justify-content: center;
+  min-height: 240px;
+  color: #526158;
+}
+
+.report-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.eyebrow {
+  color: #4b7560;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.report-heading h2 {
+  margin: 3px 0 2px;
+  font-size: 1.35rem;
+}
+
+.report-heading p {
+  color: #64746b;
+  font-size: 0.88rem;
+}
+
+.density-pill {
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.report-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.report-metrics div {
+  border: 1px solid #d8e5dd;
+  background: #f7fbf8;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.report-metrics span {
+  display: block;
+  color: #66746c;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.report-metrics strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.02rem;
+}
+
+.report-block {
+  border-top: 1px solid #dce7e0;
+  padding-top: 14px;
+}
+
+.report-block h3 {
+  margin-bottom: 8px;
+  font-size: 0.98rem;
+}
+
+.coverage-bar {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e4ece7;
+}
+
+.coverage-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.report-species-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-species {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #d8e5dd;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.report-species strong,
+.report-species em {
+  display: block;
+}
+
+.report-species em {
+  color: #5f6f66;
+  font-size: 0.84rem;
+}
+
+.probability {
+  align-self: flex-start;
+  color: #14532d;
+  font-weight: 800;
+}
+
+.muted {
+  color: #64746b;
+}
+
+@media (max-width: 560px) {
+  .report-metrics {
+    grid-template-columns: 1fr;
+  }
+}

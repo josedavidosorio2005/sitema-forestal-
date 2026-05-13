@@ -26,7 +26,10 @@ if (process.env.TRUST_PROXY === 'true' || process.env.NODE_ENV === 'production')
 }
 
 function getCorsOrigins() {
-  return (process.env.FRONTEND_URL || 'http://localhost:3000,http://127.0.0.1:3000')
+  return (
+    process.env.FRONTEND_URL ||
+    'http://localhost:3000,http://127.0.0.1:3000,https://localhost,capacitor://localhost'
+  )
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
