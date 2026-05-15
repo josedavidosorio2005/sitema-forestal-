@@ -278,8 +278,8 @@ function SavedZonesLayer({ zones, selectedZone, drawMode, onSelectZone }) {
               : {}
           }
           style={{
-            color: selectedZone?.id === zone.id ? '#f59e0b' : '#116b3b',
-            fillColor: selectedZone?.id === zone.id ? '#fbbf24' : '#22c55e',
+            color: selectedZone?.id === zone.id ? '#f59e0b' : (zone.geometry?.properties?.color || '#116b3b'),
+            fillColor: selectedZone?.id === zone.id ? '#fbbf24' : (zone.geometry?.properties?.color || '#22c55e'),
             fillOpacity:
               drawMode === 'subzone'
                 ? selectedZone?.id === zone.id

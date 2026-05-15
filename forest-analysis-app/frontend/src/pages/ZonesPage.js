@@ -70,7 +70,19 @@ function ZonesPage() {
 
     try {
       setLoading(true);
-      const response = await zonesService.update(editingZone.id, formData);
+
+      const updatedGeometry = {
+        ...editingZone.geometry,
+        properties: {
+          ...editingZone.geometry?.properties,
+          color: formData.color,
+        },
+      };
+
+      const response = await zonesService.update(editingZone.id, {
+        ...formData,
+        geometry: updatedGeometry,
+      });
       const updatedZone = response.data.data;
       setZones((current) => current.map((zone) => (zone.id === updatedZone.id ? updatedZone : zone)));
       setSelectedZone(updatedZone);

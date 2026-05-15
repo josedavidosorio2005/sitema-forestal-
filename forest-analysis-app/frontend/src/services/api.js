@@ -56,4 +56,14 @@ export const subzonesService = {
   delete: (id) => apiClient.delete(`/subzones/${id}`),
 };
 
+export const treesService = {
+  create: (data) => apiClient.post('/trees', data),
+  getBySubzoneId: (subzoneId) => apiClient.get(`/trees/subzone/${subzoneId}`),
+  getById: (id) => apiClient.get(`/trees/${id}`),
+  update: (id, data) => apiClient.put(`/trees/${id}`, data),
+  delete: (id) => apiClient.delete(`/trees/${id}`),
+  createLog: (treeId, data) => apiClient.post(`/trees/${treeId}/logs`, data),
+  getLogs: (treeId) => apiClient.get(`/trees/${treeId}/logs`),
+};
+
 export default apiClient;

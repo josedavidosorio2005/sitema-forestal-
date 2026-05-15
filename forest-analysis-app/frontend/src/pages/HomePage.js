@@ -103,7 +103,13 @@ function HomePage() {
         name: formData.name,
         description: formData.description,
         region: formData.region,
-        geometry: currentPolygon.geometry,
+        geometry: {
+          ...currentPolygon.geometry,
+          properties: {
+            ...currentPolygon.geometry.properties,
+            color: formData.color
+          }
+        },
       });
       const savedZone = zoneResponse.data.data;
 

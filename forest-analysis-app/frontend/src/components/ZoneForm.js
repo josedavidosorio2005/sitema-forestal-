@@ -13,6 +13,7 @@ function ZoneForm({
     name: initialData.name || '',
     description: initialData.description || '',
     region: initialData.region || '',
+    color: initialData.geometry?.properties?.color || '#22c55e',
     confirmed_species_ids: initialData.confirmed_species_ids || [],
   });
   const [errors, setErrors] = useState({});
@@ -69,16 +70,30 @@ function ZoneForm({
         {errors.name && <small className="field-error">{errors.name}</small>}
       </label>
 
-      <label className="field">
-        <span>Region o ubicacion</span>
-        <input
-          name="region"
-          value={formData.region}
-          onChange={handleChange}
-          placeholder="Ej: Andes, Caribe, Amazonia"
-          disabled={loading}
-        />
-      </label>
+      <div style={{ display: 'flex', gap: '12px' }}>
+        <label className="field" style={{ flex: 1 }}>
+          <span>Region o ubicacion</span>
+          <input
+            name="region"
+            value={formData.region}
+            onChange={handleChange}
+            placeholder="Ej: Andes, Caribe, Amazonia"
+            disabled={loading}
+          />
+        </label>
+        
+        <label className="field" style={{ width: '80px' }}>
+          <span>Color</span>
+          <input
+            type="color"
+            name="color"
+            value={formData.color}
+            onChange={handleChange}
+            disabled={loading}
+            style={{ width: '100%', height: '38px', padding: '2px', cursor: 'pointer' }}
+          />
+        </label>
+      </div>
 
       <label className="field">
         <span>Descripcion</span>

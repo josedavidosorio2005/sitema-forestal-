@@ -90,10 +90,17 @@ export async function getZoneById(req, res, next) {
 
 export async function updateZone(req, res, next) {
   try {
-    const { name, description, region } = req.body;
+    const { name, description, region, geometry } = req.body;
 
     if (!name || !String(name).trim()) {
       throw new ApiError('El nombre de la zona es requerido.', 400);
+    }
+
+    let normalizedGeometry;
+    try {
+      normalizedGeometry = normalizePolygonGeometry(geometry);
+    } catch (error) {
+      throw new ApiError(error.message, 400);
     }
 
     const result = await db.query(zonesQueries.update, [
@@ -101,6 +108,7 @@ export async function updateZone(req, res, next) {
       String(name).trim(),
       description || null,
       region || null,
+      JSON.stringify(normalizedGeometry)
     ]);
 
     if (result.rows.length === 0) {

@@ -54,10 +54,36 @@ export function normalizePolygonGeometry(input) {
   }
 
   return {
+    ...geometry,
     type: 'Polygon',
     coordinates: [closedRing],
   };
 }
+
+export function normalizePointGeometry(input) {
+  const geometry = input?.type === 'Feature' ? input.geometry : input;
+
+  if (!geometry || geometry.type !== 'Point' || !Array.isArray(geometry.coordinates)) {
+    throw new Error('La geometria debe ser un GeoJSON Point valido.');
+  }
+
+  const [lng, lat] = geometry.coordinates;
+
+  if (!Number.isFinite(Number(lng)) || !Number.isFinite(Number(lat))) {
+    throw new Error('Las coordenadas deben ser numeros validos.');
+  }
+
+  if (lng < -180 || lng > 180 || lat < -90 || lat > 90) {
+    throw new Error('Las coordenadas estan fuera del rango geografico permitido.');
+  }
+
+  return {
+    ...geometry,
+    type: 'Point',
+    coordinates: [Number(lng), Number(lat)],
+  };
+}
+
 
 export function calculatePolygonArea(geometryOrCoordinates) {
   const coordinates = Array.isArray(geometryOrCoordinates)

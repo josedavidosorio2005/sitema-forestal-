@@ -184,3 +184,44 @@ export const subzoneCreateOrUpdateValidators = [
     }),
   optionalText('notes', 2000),
 ];
+
+export const treeCreateValidators = [
+  body('subzone_id').isInt({ min: 1 }).withMessage('subzone_id debe ser un entero valido.'),
+  body('qr_tag').isString().trim().notEmpty().withMessage('qr_tag es requerido.'),
+  body('species_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('species_id debe ser entero.'),
+  body('dap').isFloat({ min: 0 }).withMessage('dap debe ser un numero positivo.'),
+  body('commercial_height').isFloat({ min: 0 }).withMessage('commercial_height debe ser un numero positivo.'),
+  body('estimated_volume').isFloat({ min: 0 }).withMessage('estimated_volume debe ser un numero positivo.'),
+  body('status').optional().isIn(['Marcado', 'Derribado', 'Troceado', 'Despachado']).withMessage('status invalido.'),
+  body('legal_permit').optional().isBoolean(),
+  body('health_condition').optional({ nullable: true }).isString().trim(),
+  body('fall_direction').optional({ nullable: true }).isFloat({ min: 0, max: 360 }),
+  body('geometry').custom((geometry) => {
+    // Normalization check will be done in controller for point
+    return true;
+  }),
+];
+
+export const treeUpdateValidators = [
+  idParam('id'),
+  body('qr_tag').isString().trim().notEmpty().withMessage('qr_tag es requerido.'),
+  body('species_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('species_id debe ser entero.'),
+  body('dap').isFloat({ min: 0 }).withMessage('dap debe ser un numero positivo.'),
+  body('commercial_height').isFloat({ min: 0 }).withMessage('commercial_height debe ser un numero positivo.'),
+  body('estimated_volume').isFloat({ min: 0 }).withMessage('estimated_volume debe ser un numero positivo.'),
+  body('status').optional().isIn(['Marcado', 'Derribado', 'Troceado', 'Despachado']).withMessage('status invalido.'),
+  body('legal_permit').optional().isBoolean(),
+  body('health_condition').optional({ nullable: true }).isString().trim(),
+  body('fall_direction').optional({ nullable: true }).isFloat({ min: 0, max: 360 }),
+  body('geometry').custom((geometry) => {
+    return true;
+  }),
+];
+
+export const treeLogCreateValidators = [
+  body('action').isIn(['tala', 'movimiento', 'despacho']).withMessage('Accion invalida.'),
+  body('operator_name').isString().trim().notEmpty().withMessage('El operador es requerido.'),
+  body('equipment_used').optional({ nullable: true }).isString().trim(),
+  body('cable_tension').optional({ nullable: true }).isFloat({ min: 0 }),
+  body('destination').optional({ nullable: true }).isString().trim(),
+];

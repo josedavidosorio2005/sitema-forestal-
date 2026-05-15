@@ -5,6 +5,8 @@ import HomePage from './pages/HomePage';
 import ZonesPage from './pages/ZonesPage';
 import SpeciesPage from './pages/SpeciesPage';
 import ReportsPage from './pages/ReportsPage';
+import CableLoggingPage from './pages/CableLoggingPage';
+import TraceabilityPage from './pages/TraceabilityPage';
 import './styles/globals.css';
 import './styles/components.css';
 import './App.css';
@@ -20,6 +22,8 @@ function App() {
             <Route path="/zonas" element={<ZonesPage />} />
             <Route path="/especies" element={<SpeciesPage />} />
             <Route path="/reportes" element={<ReportsPage />} />
+            <Route path="/cable" element={<CableLoggingPage />} />
+            <Route path="/trazabilidad" element={<TraceabilityPage />} />
           </Routes>
         </main>
       </div>

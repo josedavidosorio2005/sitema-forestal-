@@ -26,6 +26,12 @@ function Header() {
         <NavLink to="/reportes" className={({ isActive }) => (isActive ? 'active' : '')}>
           Reportes
         </NavLink>
+        <NavLink to="/cable" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Cable Vía
+        </NavLink>
+        <NavLink to="/trazabilidad" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Trazabilidad
+        </NavLink>
       </nav>
 
       <div className="header-status">

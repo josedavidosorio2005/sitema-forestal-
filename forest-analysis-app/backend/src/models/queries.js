@@ -68,9 +68,41 @@ CREATE TABLE IF NOT EXISTS subzones (
   area_m2 DOUBLE PRECISION,
   area_ha DOUBLE PRECISION,
   notes TEXT,
+  compaction_limit DOUBLE PRECISION DEFAULT 100.0,
+  regeneration_state VARCHAR(50) DEFAULT 'nulo' CHECK (regeneration_state IN ('nulo', 'inicial', 'avanzado')),
+  erosion_pre VARCHAR(255),
+  erosion_post VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   deleted_at TIMESTAMP NULL
+);
+
+CREATE TABLE IF NOT EXISTS trees (
+  id SERIAL PRIMARY KEY,
+  subzone_id INTEGER REFERENCES subzones(id) ON DELETE CASCADE,
+  qr_tag VARCHAR(100) UNIQUE NOT NULL,
+  species_id INTEGER REFERENCES species(id) ON DELETE SET NULL,
+  dap DOUBLE PRECISION NOT NULL,
+  commercial_height DOUBLE PRECISION NOT NULL,
+  estimated_volume DOUBLE PRECISION NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'Marcado' CHECK (status IN ('Marcado', 'Derribado', 'Troceado', 'Despachado')),
+  legal_permit BOOLEAN DEFAULT FALSE,
+  fall_direction DOUBLE PRECISION,
+  geometry_geojson JSONB NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP NULL
+);
+
+CREATE TABLE IF NOT EXISTS tree_logs (
+  id SERIAL PRIMARY KEY,
+  tree_id INTEGER REFERENCES trees(id) ON DELETE CASCADE,
+  action VARCHAR(50) NOT NULL CHECK (action IN ('tala', 'movimiento', 'despacho')),
+  operator_name VARCHAR(100) NOT NULL,
+  equipment_used VARCHAR(100),
+  cable_tension DOUBLE PRECISION,
+  destination VARCHAR(255),
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_zones_user_id ON zones(user_id);
@@ -81,6 +113,10 @@ CREATE INDEX IF NOT EXISTS idx_reports_zone_id ON reports(zone_id);
 CREATE INDEX IF NOT EXISTS idx_subzones_zone_id ON subzones(zone_id);
 CREATE INDEX IF NOT EXISTS idx_subzones_use_type ON subzones(use_type);
 CREATE INDEX IF NOT EXISTS idx_subzones_deleted_at ON subzones(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_trees_subzone_id ON trees(subzone_id);
+CREATE INDEX IF NOT EXISTS idx_trees_status ON trees(status);
+CREATE INDEX IF NOT EXISTS idx_trees_deleted_at ON trees(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_tree_logs_tree_id ON tree_logs(tree_id);
 `;
 
 export const POSTGIS_OPTIONAL_SQL = `
@@ -162,9 +198,41 @@ CREATE TABLE IF NOT EXISTS subzones (
   area_m2 REAL,
   area_ha REAL,
   notes TEXT,
+  compaction_limit REAL DEFAULT 100.0,
+  regeneration_state TEXT DEFAULT 'nulo' CHECK (regeneration_state IN ('nulo', 'inicial', 'avanzado')),
+  erosion_pre TEXT,
+  erosion_post TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT NULL
+);
+
+CREATE TABLE IF NOT EXISTS trees (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  subzone_id INTEGER REFERENCES subzones(id) ON DELETE CASCADE,
+  qr_tag TEXT UNIQUE NOT NULL,
+  species_id INTEGER REFERENCES species(id) ON DELETE SET NULL,
+  dap REAL NOT NULL,
+  commercial_height REAL NOT NULL,
+  estimated_volume REAL NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Marcado' CHECK (status IN ('Marcado', 'Derribado', 'Troceado', 'Despachado')),
+  legal_permit BOOLEAN DEFAULT 0,
+  fall_direction REAL,
+  geometry_geojson TEXT NOT NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TEXT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tree_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tree_id INTEGER REFERENCES trees(id) ON DELETE CASCADE,
+  action TEXT NOT NULL CHECK (action IN ('tala', 'movimiento', 'despacho')),
+  operator_name TEXT NOT NULL,
+  equipment_used TEXT,
+  cable_tension REAL,
+  destination TEXT,
+  timestamp TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_zones_user_id ON zones(user_id);
@@ -175,6 +243,10 @@ CREATE INDEX IF NOT EXISTS idx_reports_zone_id ON reports(zone_id);
 CREATE INDEX IF NOT EXISTS idx_subzones_zone_id ON subzones(zone_id);
 CREATE INDEX IF NOT EXISTS idx_subzones_use_type ON subzones(use_type);
 CREATE INDEX IF NOT EXISTS idx_subzones_deleted_at ON subzones(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_trees_subzone_id ON trees(subzone_id);
+CREATE INDEX IF NOT EXISTS idx_trees_status ON trees(status);
+CREATE INDEX IF NOT EXISTS idx_trees_deleted_at ON trees(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_tree_logs_tree_id ON tree_logs(tree_id);
 `;
 
 export const zonesQueries = {
@@ -197,6 +269,7 @@ export const zonesQueries = {
     SET name = $2,
         description = $3,
         region = $4,
+        geometry_geojson = $5,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = $1 AND deleted_at IS NULL
     RETURNING *;
@@ -357,3 +430,69 @@ export const subzonesQueries = {
     RETURNING *;
   `,
 };
+
+export const treesQueries = {
+  create: `
+    INSERT INTO trees (
+      subzone_id, qr_tag, species_id, dap, commercial_height, estimated_volume, status, legal_permit, fall_direction, geometry_geojson, health_condition
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    RETURNING *;
+  `,
+  getBySubzoneId: `
+    SELECT t.*, s.common_name AS species_common_name, s.scientific_name AS species_scientific_name
+    FROM trees t
+    LEFT JOIN species s ON t.species_id = s.id
+    WHERE t.subzone_id = $1 AND t.deleted_at IS NULL
+    ORDER BY t.created_at DESC;
+  `,
+  getById: `
+    SELECT t.*, s.common_name AS species_common_name, s.scientific_name AS species_scientific_name
+    FROM trees t
+    LEFT JOIN species s ON t.species_id = s.id
+    WHERE t.id = $1 AND t.deleted_at IS NULL;
+  `,
+  updateStatus: `
+    UPDATE trees
+    SET status = $2,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND deleted_at IS NULL
+    RETURNING *;
+  `,
+  update: `
+    UPDATE trees
+    SET qr_tag = $2,
+        species_id = $3,
+        dap = $4,
+        commercial_height = $5,
+        estimated_volume = $6,
+        status = $7,
+        legal_permit = $8,
+        fall_direction = $9,
+        geometry_geojson = $10,
+        health_condition = $11,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND deleted_at IS NULL
+    RETURNING *;
+  `,
+  softDelete: `
+    UPDATE trees
+    SET deleted_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND deleted_at IS NULL
+    RETURNING *;
+  `
+};
+
+export const treeLogsQueries = {
+  create: `
+    INSERT INTO tree_logs (tree_id, action, operator_name, equipment_used, cable_tension, destination)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING *;
+  `,
+  getByTreeId: `
+    SELECT * FROM tree_logs
+    WHERE tree_id = $1
+    ORDER BY timestamp DESC;
+  `
+};
+
