@@ -6,7 +6,7 @@ import SubzoneForm from '../components/SubzoneForm';
 import SubzonesPanel from '../components/SubzonesPanel';
 import ZoneForm from '../components/ZoneForm';
 import { reportsService, speciesService, subzonesService, zonesService } from '../services/api';
-import { formatNumber, getErrorMessage } from '../utils/helpers';
+import { formatNumber, getErrorMessage, polygonIsInsidePolygon } from '../utils/helpers';
 import './HomePage.css';
 
 function HomePage() {
@@ -20,6 +20,8 @@ function HomePage() {
   const [drawMode, setDrawMode] = useState('zone');
   const [showZoneForm, setShowZoneForm] = useState(false);
   const [showSubzoneForm, setShowSubzoneForm] = useState(false);
+  const [drawRequestId, setDrawRequestId] = useState(0);
+  const [clearRequestId, setClearRequestId] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -33,8 +35,18 @@ function HomePage() {
         zonesService.getAll(),
         speciesService.getAll(),
       ]);
-      setZones(zonesResponse.data.data);
+      const loadedZones = zonesResponse.data.data;
+      setZones(loadedZones);
       setSpecies(speciesResponse.data.data);
+
+      const searchParams = new URLSearchParams(window.location.hash.split('?')[1]);
+      const zoneId = searchParams.get('zone');
+      if (zoneId) {
+        const targetZone = loadedZones.find(z => z.id === Number(zoneId));
+        if (targetZone) {
+          handleSelectZone(targetZone);
+        }
+      }
     } catch (error) {
       setMessage({ type: 'error', text: getErrorMessage(error) });
     }
@@ -45,6 +57,17 @@ function HomePage() {
     setMessage(null);
 
     if (drawMode === 'subzone' && selectedZone) {
+      if (!polygonIsInsidePolygon(payload.geometry, selectedZone.geometry)) {
+        setCurrentPolygon(null);
+        setShowSubzoneForm(false);
+        setClearRequestId((current) => current + 1);
+        setMessage({
+          type: 'error',
+          text: 'La subzona debe quedar completamente dentro de la zona seleccionada.',
+        });
+        return;
+      }
+
       setShowSubzoneForm(true);
       setShowZoneForm(false);
       return;
@@ -63,6 +86,7 @@ function HomePage() {
     setCurrentPolygon(null);
     setShowZoneForm(false);
     setShowSubzoneForm(false);
+    setClearRequestId((current) => current + 1);
   }
 
   async function handleSaveZone(formData) {
@@ -93,6 +117,7 @@ function HomePage() {
       setSelectedZone(savedZone);
       setReport(reportResponse.data.data);
       setCurrentPolygon(null);
+      setClearRequestId((current) => current + 1);
       setShowZoneForm(false);
       setShowSubzoneForm(false);
       setSubzones([]);
@@ -109,6 +134,7 @@ function HomePage() {
   async function handleSelectZone(zone) {
     setSelectedZone(zone);
     setCurrentPolygon(null);
+    setClearRequestId((current) => current + 1);
     setShowZoneForm(false);
     setShowSubzoneForm(false);
     setSelectedSubzone(null);
@@ -140,8 +166,9 @@ function HomePage() {
     setShowSubzoneForm(false);
     setMessage({
       type: 'success',
-      text: `Dibuja el poligono de la subzona dentro de ${selectedZone.name}.`,
+      text: `Modo dibujo activo: marca puntos dentro de ${selectedZone.name} y pulsa Finalizar subzona.`,
     });
+    setDrawRequestId((current) => current + 1);
   }
 
   function startSubzoneForm() {
@@ -149,6 +176,7 @@ function HomePage() {
 
     setDrawMode('zone');
     setCurrentPolygon(null);
+    setClearRequestId((current) => current + 1);
     setShowZoneForm(false);
     setShowSubzoneForm(true);
     setMessage(null);
@@ -164,6 +192,15 @@ function HomePage() {
       setLoading(true);
       setMessage(null);
 
+      if (currentPolygon && !polygonIsInsidePolygon(currentPolygon.geometry, selectedZone.geometry)) {
+        setMessage({
+          type: 'error',
+          text: 'La subzona debe quedar completamente dentro de la zona seleccionada.',
+        });
+        setLoading(false);
+        return;
+      }
+
       const response = await subzonesService.create(selectedZone.id, {
         ...formData,
         ...(currentPolygon ? { geometry: currentPolygon.geometry } : {}),
@@ -173,6 +210,7 @@ function HomePage() {
       setSubzones((current) => [savedSubzone, ...current]);
       setSelectedSubzone(savedSubzone);
       setCurrentPolygon(null);
+      setClearRequestId((current) => current + 1);
       setShowSubzoneForm(false);
       setDrawMode('zone');
       setMessage({ type: 'success', text: 'Subzona guardada dentro de la zona.' });
@@ -194,6 +232,9 @@ function HomePage() {
           selectedZone={selectedZone}
           subzones={subzones}
           selectedSubzone={selectedSubzone}
+          drawMode={drawMode}
+          drawRequestId={drawRequestId}
+          clearRequestId={clearRequestId}
           onSelectZone={handleSelectZone}
           onSelectSubzone={setSelectedSubzone}
           onClearSelection={() => {
@@ -202,6 +243,7 @@ function HomePage() {
             setSubzones([]);
             setReport(null);
             setCurrentPolygon(null);
+            setClearRequestId((current) => current + 1);
             setShowZoneForm(false);
             setShowSubzoneForm(false);
             setDrawMode('zone');
@@ -261,6 +303,7 @@ function HomePage() {
               onCancel={() => {
                 setShowSubzoneForm(false);
                 setDrawMode('zone');
+                setClearRequestId((current) => current + 1);
               }}
               loading={loading}
               speciesOptions={species}
@@ -288,11 +331,11 @@ function HomePage() {
               Divide la zona en sectores internos para indicar pendiente, suelo, arbol y cantidad.
             </p>
             <div className="stack-actions mt-2">
-              <button className="btn btn-primary btn-block" onClick={startSubzoneForm}>
-                Nueva subzona
+              <button className="btn btn-primary btn-block" onClick={startSubzoneDrawing}>
+                Dibujar parte de zona
               </button>
-              <button className="btn btn-secondary btn-block" onClick={startSubzoneDrawing}>
-                Dibujar poligono
+              <button className="btn btn-secondary btn-block" onClick={startSubzoneForm}>
+                Nueva sin poligono
               </button>
             </div>
             <div className="mt-2">

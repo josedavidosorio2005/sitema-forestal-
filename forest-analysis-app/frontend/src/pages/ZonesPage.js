@@ -263,6 +263,15 @@ function ZonesPage() {
                   >
                     Subzona
                   </button>
+                  <a
+                    className="btn btn-small btn-secondary"
+                    href={`#/?zone=${zone.id}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                    }}
+                  >
+                    Ver en mapa
+                  </a>
                   <button
                     className="btn btn-small btn-danger"
                     onClick={(event) => {

@@ -35,7 +35,7 @@ function getCorsOrigins() {
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || getCorsOrigins().includes(origin)) {
+      if (!origin || getCorsOrigins().includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
         callback(null, true);
         return;
       }
