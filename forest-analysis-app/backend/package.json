@@ -9,7 +9,7 @@
     "dev": "nodemon src/index.js",
     "migrate": "node src/scripts/migrate.js",
     "seed": "node src/scripts/seed.js",
-    "check": "node --check src/index.js && node --check src/routes/validators.js && node --check src/controllers/subzonesController.js && node --check src/routes/subzones.js && node --check src/utils/geojson.js",
+    "check": "node --check src/index.js && node --check src/routes/validators.js && node --check src/controllers/subzonesController.js && node --check src/controllers/calculationsController.js && node --check src/routes/subzones.js && node --check src/routes/calculations.js && node --check src/utils/geojson.js && node --check src/utils/logDragTension.js",
     "health": "node src/scripts/health-check.js"
   },
   "keywords": [

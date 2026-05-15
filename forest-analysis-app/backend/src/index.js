@@ -5,6 +5,7 @@ import zonesRoutes from './routes/zones.js';
 import speciesRoutes from './routes/species.js';
 import reportsRoutes from './routes/reports.js';
 import subzonesRoutes from './routes/subzones.js';
+import calculationsRoutes from './routes/calculations.js';
 import db from './config/database.js';
 import {
   CREATE_TABLES_POSTGRES_SQL,
@@ -77,6 +78,7 @@ app.use('/api/zones', zonesRoutes);
 app.use('/api/species', speciesRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/subzones', subzonesRoutes);
+app.use('/api/calculations', calculationsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

@@ -1,5 +1,13 @@
 # 📑 ÍNDICE DE ARCHIVOS - Forest Analysis
 
+## Actualizacion funcional
+
+- `backend/src/routes/calculations.js` y `backend/src/utils/logDragTension.js`: endpoint y motor de calculo para extraccion de troncos.
+- `frontend/src/pages/ExtractionCalculatorPage.js`: pantalla web de extraccion con salida JSON tecnica.
+- `frontend/src/components/MapComponent.js`: buscador de lugares por direccion, finca, vereda o coordenadas.
+- `vercionde pc/src/...`: misma calculadora y buscador para la version de computador.
+- `lamda vercion de andid/src/...`: misma calculadora y buscador para la version movil Android.
+
 ## 📂 Estructura Completa del Proyecto
 
 ```

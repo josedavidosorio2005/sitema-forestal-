@@ -388,6 +388,158 @@ function SubzoneLegend({ subzones }) {
   );
 }
 
+function parseCoordinateSearch(value) {
+  const parts = String(value || '')
+    .trim()
+    .split(/[,\s]+/)
+    .map((part) => Number(part));
+
+  if (parts.length < 2 || parts.some((part) => !Number.isFinite(part))) {
+    return null;
+  }
+
+  const [lat, lng] = parts;
+
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    return null;
+  }
+
+  return { lat, lng, label: `${lat}, ${lng}` };
+}
+
+function PlaceSearchControl() {
+  const map = useMap();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  function goToPlace(place) {
+    const lat = Number(place.lat);
+    const lng = Number(place.lng ?? place.lon);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    setSelectedPlace({
+      lat,
+      lng,
+      label: place.display_name || place.label || query,
+    });
+    setMessage('');
+
+    if (Array.isArray(place.boundingbox) && place.boundingbox.length === 4) {
+      const [south, north, west, east] = place.boundingbox.map(Number);
+      const bounds = L.latLngBounds([south, west], [north, east]);
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 17 });
+        return;
+      }
+    }
+
+    map.flyTo([lat, lng], 16, { duration: 0.8 });
+  }
+
+  async function searchPlace(event) {
+    event.preventDefault();
+    const cleanQuery = query.trim();
+
+    if (!cleanQuery) {
+      setMessage('Escribe una direccion, finca, vereda o coordenadas.');
+      setResults([]);
+      return;
+    }
+
+    const coordinatePlace = parseCoordinateSearch(cleanQuery);
+    if (coordinatePlace) {
+      setResults([]);
+      goToPlace(coordinatePlace);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setMessage('');
+
+      const url = new URL('https://nominatim.openstreetmap.org/search');
+      url.searchParams.set('format', 'jsonv2');
+      url.searchParams.set('limit', '5');
+      url.searchParams.set('addressdetails', '1');
+      url.searchParams.set('accept-language', 'es');
+      url.searchParams.set('q', cleanQuery);
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        throw new Error('No se pudo buscar el lugar.');
+      }
+
+      const payload = await response.json();
+      setResults(payload);
+
+      if (payload.length > 0) {
+        goToPlace(payload[0]);
+      } else {
+        setMessage('No se encontraron lugares para esa busqueda.');
+      }
+    } catch (error) {
+      setMessage(error.message || 'No se pudo buscar el lugar.');
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <form
+        className="map-search"
+        onSubmit={searchPlace}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="map-search-row">
+          <input
+            type="search"
+            value={query}
+            placeholder="Direccion, finca, vereda o 4.65,-74.08"
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <button type="submit" disabled={loading}>
+            {loading ? '...' : 'Buscar'}
+          </button>
+        </div>
+        {message && <div className="map-search-message">{message}</div>}
+        {results.length > 1 && (
+          <div className="map-search-results">
+            {results.map((place) => (
+              <button
+                key={`${place.place_id}-${place.lat}-${place.lon}`}
+                type="button"
+                onClick={() => goToPlace({ ...place, lng: place.lon })}
+              >
+                {place.display_name}
+              </button>
+            ))}
+          </div>
+        )}
+      </form>
+
+      {selectedPlace && (
+        <CircleMarker
+          center={[selectedPlace.lat, selectedPlace.lng]}
+          radius={9}
+          pathOptions={{
+            color: '#0f172a',
+            fillColor: '#f59e0b',
+            fillOpacity: 0.95,
+            weight: 3,
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 function MapActions({ currentPolygon, drawMode, onClear }) {
   const map = useMap();
 
@@ -523,6 +675,7 @@ function MapComponent({
           onAddPoint={handleManualSubzonePoint}
         />
         <MapActions currentPolygon={currentPolygon} drawMode={drawMode} onClear={onClearSelection} />
+        <PlaceSearchControl />
       </MapContainer>
 
       <SubzoneLegend subzones={safeSubzones} />

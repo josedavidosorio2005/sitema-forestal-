@@ -4,6 +4,7 @@ import { normalizePolygonGeometry } from '../utils/geojson.js';
 const SPECIES_TYPES = ['nativa', 'introducida', 'invasora', 'ornamental', 'comercial'];
 const SUBZONE_USE_TYPES = ['plantacion', 'recoleccion', 'conservacion', 'mixto'];
 const SUBZONE_OPERATION_TYPES = ['sembrar', 'recolectar', 'monitorear'];
+const LOG_DRAG_SOILS = ['pasto', 'tierra_seca', 'tierra', 'lodo', 'grava'];
 
 function optionalText(field, max = 1000) {
   return body(field)
@@ -183,4 +184,41 @@ export const subzoneCreateOrUpdateValidators = [
       return true;
     }),
   optionalText('notes', 2000),
+];
+
+export const logDragTensionValidators = [
+  body().custom((payload) => {
+    const weight = Number(payload.peso_tronco ?? payload.weightKg);
+    const slope = Number(payload.angulo_pendiente ?? payload.slopeDegrees);
+    const distance = Number(payload.distancia_arrastre ?? payload.dragDistanceMeters ?? 0);
+    const safety = Number(payload.factor_seguridad ?? payload.safetyFactor ?? 5);
+    const soil = String(payload.tipo_suelo ?? payload.surface ?? 'tierra_seca').toLowerCase().trim();
+    const friction = Number(payload.frictionCoefficient ?? 0.4);
+
+    if (!Number.isFinite(weight) || weight <= 0 || weight > 500000) {
+      throw new Error('peso_tronco debe ser un numero mayor que cero.');
+    }
+
+    if (!Number.isFinite(slope) || slope < 0 || slope > 90) {
+      throw new Error('angulo_pendiente debe estar entre 0 y 90 grados.');
+    }
+
+    if (!LOG_DRAG_SOILS.includes(soil)) {
+      throw new Error(`tipo_suelo invalido. Usa uno de: ${LOG_DRAG_SOILS.join(', ')}.`);
+    }
+
+    if (!Number.isFinite(distance) || distance < 0 || distance > 10000) {
+      throw new Error('distancia_arrastre debe ser un numero positivo.');
+    }
+
+    if (payload.frictionCoefficient !== undefined && (!Number.isFinite(friction) || friction < 0 || friction > 2)) {
+      throw new Error('frictionCoefficient debe estar entre 0 y 2.');
+    }
+
+    if (!Number.isFinite(safety) || safety < 1 || safety > 20) {
+      throw new Error('factor_seguridad debe estar entre 1 y 20.');
+    }
+
+    return true;
+  }),
 ];

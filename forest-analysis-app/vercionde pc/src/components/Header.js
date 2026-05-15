@@ -26,6 +26,9 @@ function Header() {
         <NavLink to="/reportes" className={({ isActive }) => (isActive ? 'active' : '')}>
           Reportes
         </NavLink>
+        <NavLink to="/extraccion" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Extraccion
+        </NavLink>
       </nav>
 
       <div className="header-status">

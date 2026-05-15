@@ -1,5 +1,14 @@
 # 📝 CHANGELOG - Forest Analysis
 
+## Actualizacion - Extraccion y busqueda de lugares
+**Fecha:** 15 de Mayo de 2026
+
+- Agregado motor de calculo de extraccion de troncos con `peso_tronco`, `angulo_pendiente`, `tipo_suelo` y `distancia_arrastre`.
+- Nueva salida JSON tecnica con tension estatica, tension con factor 5:1, MBS recomendado, friccion usada, alertas y material sugerido.
+- Nuevo endpoint `POST /api/calculations/log-drag-tension`.
+- Nueva pantalla `Extraccion` en web, PC/Electron y Android/Capacitor.
+- Agregado buscador de lugares en el mapa por direccion, finca, vereda o coordenadas pegadas.
+
 ## Versión 1.0.0 - Primera Versión Completa
 **Fecha:** 12 de Mayo de 2024  
 **Estado:** ✅ COMPLETADO Y FUNCIONAL

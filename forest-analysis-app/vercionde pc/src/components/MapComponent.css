@@ -22,6 +22,72 @@
   flex-wrap: wrap;
 }
 
+.map-search {
+  position: absolute;
+  left: 58px;
+  top: 62px;
+  z-index: 670;
+  width: min(520px, calc(100% - 86px));
+  padding: 10px;
+  border: 1px solid #cbd8d0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 8px 24px rgba(15, 35, 26, 0.16);
+}
+
+.map-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.map-search input {
+  min-width: 0;
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.map-search button {
+  min-height: 40px;
+  border: 1px solid #116b3b;
+  border-radius: 7px;
+  background: #116b3b;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.map-search button:disabled {
+  opacity: 0.6;
+}
+
+.map-search-message {
+  margin-top: 8px;
+  color: #7f1d1d;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.map-search-results {
+  display: grid;
+  gap: 6px;
+  max-height: 188px;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+.map-search-results button {
+  justify-content: flex-start;
+  min-height: 0;
+  padding: 8px 9px;
+  border-color: #d7e6dc;
+  background: #f6faf7;
+  color: #10251b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: left;
+}
+
 .map-actions button {
   background: rgba(255, 255, 255, 0.95);
   color: #10251b;
@@ -79,7 +145,7 @@
 .manual-draw-panel {
   position: absolute;
   left: 16px;
-  top: 68px;
+  top: 126px;
   z-index: 660;
   width: min(390px, calc(100% - 32px));
   padding: 12px;
@@ -205,6 +271,17 @@
     top: 54px;
   }
 
+  .map-search {
+    left: 10px;
+    right: 10px;
+    top: 118px;
+    width: auto;
+  }
+
+  .map-search-row {
+    grid-template-columns: 1fr;
+  }
+
   .map-actions button,
   .map-area-chip {
     font-size: 0.82rem;
@@ -230,7 +307,7 @@
   .manual-draw-panel {
     left: 10px;
     right: 10px;
-    top: 104px;
+    top: 190px;
     width: auto;
   }
 
@@ -239,7 +316,7 @@
   }
 
   .map-legend {
-    top: 244px;
+    top: 330px;
     right: 10px;
     bottom: auto;
     width: min(280px, calc(100% - 20px));

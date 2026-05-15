@@ -6,6 +6,39 @@
 
 ---
 
+## CALCULOS FORESTALES
+
+### POST /calculations/log-drag-tension
+Calcula tension de arrastre de troncos y devuelve un JSON tecnico estricto.
+
+**Request:**
+```json
+{
+  "peso_tronco": 1200,
+  "angulo_pendiente": 18,
+  "tipo_suelo": "tierra_seca",
+  "distancia_arrastre": 35
+}
+```
+
+**tipo_suelo permitido:** `pasto`, `tierra_seca`, `lodo`, `grava`.
+
+**Response (200):**
+```json
+{
+  "tension_estatica_kN": 8.12,
+  "tension_con_seguridad_kN": 40.58,
+  "mbs_recomendado_kg": 4137,
+  "coeficiente_friccion_usado": 0.4,
+  "alertas": [
+    "Carga de choque: evita tirones bruscos y usa arranque progresivo."
+  ],
+  "material_sugerido": "Poliester trenzado de baja elongacion."
+}
+```
+
+---
+
 ## 🏥 Health Check
 
 ### GET /health
