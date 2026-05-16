@@ -264,9 +264,11 @@ function SavedZonesLayer({ zones, selectedZone, drawMode, onSelectZone }) {
 
   return (
     <>
-      {zones.map((zone) => (
+      {zones.map((zone) => {
+        const zoneColor = zone.geometry?.properties?.color || '#116b3b';
+        return (
         <GeoJSON
-          key={`${zone.id}-${selectedZone?.id === zone.id ? 'active' : 'idle'}-${canSelect ? 'select' : 'draw'}`}
+          key={`${zone.id}-${selectedZone?.id === zone.id ? 'active' : 'idle'}-${canSelect ? 'select' : 'draw'}-${zoneColor}`}
           data={zone.geometry}
           interactive={canSelect}
           bubblingMouseEvents={canSelect}
@@ -291,7 +293,8 @@ function SavedZonesLayer({ zones, selectedZone, drawMode, onSelectZone }) {
             weight: selectedZone?.id === zone.id ? 3 : 2,
           }}
         />
-      ))}
+      );
+      })}
     </>
   );
 }

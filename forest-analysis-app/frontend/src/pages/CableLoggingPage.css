@@ -70,7 +70,8 @@
   margin-bottom: 6px;
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #cbd5e1;
@@ -79,16 +80,18 @@
   color: #0f172a;
   transition: border-color 0.2s;
   box-sizing: border-box;
+  background: #fff;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
   outline: none;
   border-color: #16a34a;
   box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
 }
 
 .highlight-input {
-  background-color: #fffbeb;
+  background-color: #fffbeb !important;
   border-color: #fcd34d !important;
   font-weight: 600;
 }
@@ -109,6 +112,99 @@
   box-shadow: 0 4px 6px rgba(22, 163, 74, 0.2);
 }
 
+/* ── Cable Catalog ── */
+.cable-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.cable-spec-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+  transition: all 0.2s;
+}
+
+.cable-spec-card:hover {
+  border-color: #16a34a;
+}
+
+.cable-spec-card.suggested {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+}
+
+.cable-spec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.cable-spec-header strong {
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.cable-badge {
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.cable-spec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cable-spec-grid div {
+  display: flex;
+  flex-direction: column;
+}
+
+.cable-spec-grid small {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.cable-spec-grid span {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cable-material {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.save-cable-form input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+/* ── Metric boxes ── */
 .metric-box {
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
@@ -165,6 +261,118 @@
   transition: width 0.5s ease-out, background 0.3s ease;
 }
 
+.metric-box.danger {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+.metric-box.danger strong,
+.metric-box.danger span {
+  color: #b91c1c;
+}
+
+.metric-box.success {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+.metric-box.success strong,
+.metric-box.success span {
+  color: #15803d;
+}
+
+.metric-box.warning {
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+.metric-box.warning strong,
+.metric-box.warning span {
+  color: #b45309;
+}
+
+.metric-box.neutral {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+.metric-box.neutral strong,
+.metric-box.neutral span {
+  color: #1d4ed8;
+}
+
+/* ── Recommendations ── */
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rec-card {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid;
+  animation: fadeSlideIn 0.3s ease;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rec-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.rec-icon {
+  font-size: 1rem;
+}
+
+.rec-header strong {
+  font-size: 0.85rem;
+  color: inherit;
+}
+
+.rec-card p {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0;
+  color: inherit;
+  opacity: 0.85;
+}
+
+.rec-critical {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.rec-warning {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.rec-info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.rec-success {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.text-success {
+  color: #16a34a;
+  font-style: italic;
+}
+
+.cable-suggestion {
+  margin-top: 4px;
+}
+
 .alerts-container {
   display: flex;
   flex-direction: column;
@@ -184,42 +392,12 @@
   font-size: 0.95rem;
 }
 
-.metric-box.danger {
-  background: #fef2f2;
-  border-color: #fca5a5;
+.cable-catalog-section {
+  grid-column: 1 / -1;
 }
 
-.metric-box.danger strong,
-.metric-box.danger span {
-  color: #b91c1c;
-}
-
-.metric-box.success {
-  background: #f0fdf4;
-  border-color: #86efac;
-}
-
-.metric-box.success strong,
-.metric-box.success span {
-  color: #15803d;
-}
-
-.metric-box.warning {
-  background: #fffbeb;
-  border-color: #fcd34d;
-}
-
-.metric-box.warning strong,
-.metric-box.warning span {
-  color: #b45309;
-}
-
-.metric-box.neutral {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-}
-
-.metric-box.neutral strong,
-.metric-box.neutral span {
-  color: #1d4ed8;
+@media (min-width: 800px) {
+  .cable-catalog-section {
+    grid-column: span 1;
+  }
 }

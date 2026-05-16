@@ -10,7 +10,7 @@ import {
 } from '../utils/helpers';
 import './SpeciesPage.css';
 
-const FILTERS = ['todas', 'nativa', 'introducida', 'invasora', 'ornamental', 'comercial'];
+const BASE_TYPES = ['nativa', 'introducida', 'invasora', 'ornamental', 'comercial'];
 
 function SpeciesPage() {
   const [species, setSpecies] = useState([]);
@@ -19,14 +19,20 @@ function SpeciesPage() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
+  const [allSpeciesForTypes, setAllSpeciesForTypes] = useState([]);
 
   const activeType = selectedType === 'todas' ? null : selectedType;
 
   const loadSpecies = useCallback(async (type = activeType) => {
     try {
       setLoading(true);
-      const response = await speciesService.getAll(type);
-      setSpecies(response.data.data);
+      const [filteredResponse, allResponse] = await Promise.all([
+        speciesService.getAll(type),
+        type ? speciesService.getAll(null) : Promise.resolve(null),
+      ]);
+      setSpecies(filteredResponse.data.data);
+      setAllSpeciesForTypes(allResponse ? allResponse.data.data : filteredResponse.data.data);
     } catch (error) {
       setMessage({ type: 'error', text: getErrorMessage(error) });
     } finally {
@@ -59,14 +65,13 @@ function SpeciesPage() {
   }
 
   async function handleDelete(speciesId) {
-    const confirmed = window.confirm('Eliminar esta especie del catalogo?');
-    if (!confirmed) return;
-
     try {
       await speciesService.delete(speciesId);
+      setConfirmingDeleteId(null);
       setMessage({ type: 'success', text: 'Especie eliminada.' });
       await loadSpecies();
     } catch (error) {
+      setConfirmingDeleteId(null);
       setMessage({ type: 'error', text: getErrorMessage(error) });
     }
   }
@@ -81,16 +86,23 @@ function SpeciesPage() {
     );
   }, [species]);
 
+  const allTypes = useMemo(() => {
+    const typesFromData = allSpeciesForTypes.map(s => s.type).filter(Boolean);
+    const merged = [...new Set([...BASE_TYPES, ...typesFromData])];
+    return merged;
+  }, [allSpeciesForTypes]);
+
+  const FILTERS = useMemo(() => ['todas', ...allTypes], [allTypes]);
+
   return (
     <div className="management-layout">
       <main className="management-main">
         <div className="page-header">
           <div>
-            <span className="eyebrow">Catalogo del cliente</span>
-            <h1>Especies arboreas</h1>
+            <span className="eyebrow">🌿 Catálogo Botánico</span>
+            <h1>Especies Arbóreas</h1>
             <p>
-              El catalogo manual evita depender de una IA para adivinar especies. Los reportes
-              usan estas especies como base local.
+              Gestiona el inventario de especies por categoría y región para análisis y reportes forestales.
             </p>
           </div>
           <button
@@ -114,6 +126,7 @@ function SpeciesPage() {
               onClick={() => setSelectedType(type)}
             >
               {type === 'todas' ? 'Todas' : getSpeciesTypeLabel(type)}
+              {type !== 'todas' && stats[type] ? ` (${stats[type]})` : ''}
             </button>
           ))}
         </div>
@@ -179,9 +192,20 @@ function SpeciesPage() {
                         >
                           Editar
                         </button>
-                        <button className="btn btn-small btn-danger" onClick={() => handleDelete(item.id)}>
+                        <button className="btn btn-small btn-danger" onClick={() => setConfirmingDeleteId(item.id)}>
                           Eliminar
                         </button>
+                        {confirmingDeleteId === item.id && (
+                          <div style={{display:'flex',gap:'6px',alignItems:'center',marginTop:'4px'}}>
+                            <span style={{fontSize:'0.75rem',color:'#b91c1c',fontWeight:700}}>¿Seguro?</span>
+                            <button className="btn btn-small btn-danger" onClick={() => handleDelete(item.id)}>
+                              Sí
+                            </button>
+                            <button className="btn btn-small btn-secondary" onClick={() => setConfirmingDeleteId(null)}>
+                              No
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -202,6 +226,7 @@ function SpeciesPage() {
               setEditingSpecies(null);
             }}
             loading={loading}
+            customTypes={allTypes.filter(t => !BASE_TYPES.includes(t))}
           />
         ) : (
           <section className="sidebar-section">

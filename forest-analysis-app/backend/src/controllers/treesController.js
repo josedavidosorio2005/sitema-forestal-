@@ -52,6 +52,66 @@ export async function createTree(req, res, next) {
   }
 }
 
+export async function createTreesBatch(req, res, next) {
+  try {
+    const { trees: treesPayload } = req.body;
+
+    if (!Array.isArray(treesPayload) || treesPayload.length === 0) {
+      throw new ApiError('Debes enviar al menos un arbol en el lote.', 400);
+    }
+
+    if (treesPayload.length > 50) {
+      throw new ApiError('Maximo 50 arboles por lote.', 400);
+    }
+
+    const created = [];
+    const errors = [];
+
+    for (let i = 0; i < treesPayload.length; i++) {
+      const item = treesPayload[i];
+      try {
+        let normalizedGeometry;
+        try {
+          normalizedGeometry = normalizePointGeometry(item.geometry);
+        } catch (error) {
+          throw new ApiError(`Arbol #${i + 1}: ${error.message}`, 400);
+        }
+
+        const result = await db.query(treesQueries.create, [
+          item.subzone_id,
+          item.qr_tag,
+          item.species_id || null,
+          item.dap,
+          item.commercial_height,
+          item.estimated_volume,
+          item.status || 'Marcado',
+          item.legal_permit ? 1 : 0,
+          item.fall_direction || null,
+          JSON.stringify(normalizedGeometry),
+          item.health_condition || 'Sano / Normal'
+        ]);
+
+        created.push(formatTree(result.rows[0]));
+      } catch (error) {
+        if (error.message.includes('UNIQUE') || error.code === '23505') {
+          errors.push({ index: i, qr_tag: item.qr_tag, error: 'Ya existe un arbol con ese QR/Tag.' });
+        } else {
+          errors.push({ index: i, qr_tag: item.qr_tag, error: error.message });
+        }
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `${created.length} arboles registrados. ${errors.length} errores.`,
+      data: created,
+      errors,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getTreesBySubzoneId(req, res, next) {
   try {
     const result = await db.query(treesQueries.getBySubzoneId, [req.params.subzoneId]);

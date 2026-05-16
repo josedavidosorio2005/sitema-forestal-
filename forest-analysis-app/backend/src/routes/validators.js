@@ -71,8 +71,13 @@ export const speciesCreateOrUpdateValidators = [
     .isLength({ max: 255 })
     .withMessage('El nombre cientifico no puede superar 255 caracteres.'),
   body('type')
-    .isIn(SPECIES_TYPES)
-    .withMessage(`Tipo invalido. Usa uno de: ${SPECIES_TYPES.join(', ')}.`),
+    .isString()
+    .withMessage('El tipo/categoria es requerido.')
+    .trim()
+    .notEmpty()
+    .withMessage('El tipo/categoria es requerido.')
+    .isLength({ max: 50 })
+    .withMessage('El tipo no puede superar 50 caracteres.'),
   optionalText('description', 2000),
   optionalText('region', 255),
   body('image_url')
@@ -87,8 +92,9 @@ export const speciesCreateOrUpdateValidators = [
 export const speciesQueryValidators = [
   query('type')
     .optional({ nullable: true, checkFalsy: true })
-    .isIn(SPECIES_TYPES)
-    .withMessage(`Tipo invalido. Usa uno de: ${SPECIES_TYPES.join(', ')}.`),
+    .isString()
+    .withMessage('Tipo debe ser texto.')
+    .trim(),
 ];
 
 export const reportCreateValidators = [

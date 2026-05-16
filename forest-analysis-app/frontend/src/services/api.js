@@ -58,6 +58,7 @@ export const subzonesService = {
 
 export const treesService = {
   create: (data) => apiClient.post('/trees', data),
+  createBatch: (trees) => apiClient.post('/trees/batch', { trees }),
   getBySubzoneId: (subzoneId) => apiClient.get(`/trees/subzone/${subzoneId}`),
   getById: (id) => apiClient.get(`/trees/${id}`),
   update: (id, data) => apiClient.put(`/trees/${id}`, data),

@@ -7,6 +7,7 @@ const router = express.Router();
 
 // Rutas base: /api/trees
 router.post('/', treeCreateValidators, handleValidation, treesController.createTree);
+router.post('/batch', treesController.createTreesBatch);
 router.get('/subzone/:subzoneId', idParam('subzoneId'), handleValidation, treesController.getTreesBySubzoneId);
 
 router.get('/:id', idParam('id'), handleValidation, treesController.getTreeById);

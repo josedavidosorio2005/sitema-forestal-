@@ -23,11 +23,8 @@ function validateSpeciesPayload(payload) {
     throw new ApiError('El nombre cientifico es requerido.', 400);
   }
 
-  if (!VALID_SPECIES_TYPES.includes(payload.type)) {
-    throw new ApiError(
-      `Tipo invalido. Usa uno de: ${VALID_SPECIES_TYPES.join(', ')}.`,
-      400
-    );
+  if (!payload.type || !String(payload.type).trim()) {
+    throw new ApiError('El tipo/categoria es requerido.', 400);
   }
 }
 
@@ -60,8 +57,8 @@ export async function getAllSpecies(req, res, next) {
   try {
     const { type } = req.query;
 
-    if (type && !VALID_SPECIES_TYPES.includes(type)) {
-      throw new ApiError(`Tipo invalido: ${type}.`, 400);
+    if (type && typeof type !== 'string') {
+      throw new ApiError('Tipo debe ser texto.', 400);
     }
 
     const result = type

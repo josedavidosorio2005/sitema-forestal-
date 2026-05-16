@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './SpeciesForm.css';
 
-const SPECIES_TYPES = [
+const DEFAULT_TYPES = [
   { value: 'nativa', label: 'Nativa' },
   { value: 'introducida', label: 'Introducida' },
   { value: 'invasora', label: 'Invasora' },
@@ -9,7 +9,7 @@ const SPECIES_TYPES = [
   { value: 'comercial', label: 'Comercial' },
 ];
 
-function SpeciesForm({ initialData = {}, onSubmit, onCancel, loading = false }) {
+function SpeciesForm({ initialData = {}, onSubmit, onCancel, loading = false, customTypes = [] }) {
   const [formData, setFormData] = useState({
     common_name: initialData.common_name || '',
     scientific_name: initialData.scientific_name || '',
@@ -20,11 +20,34 @@ function SpeciesForm({ initialData = {}, onSubmit, onCancel, loading = false }) 
     observations: initialData.observations || '',
   });
   const [errors, setErrors] = useState({});
+  const [showNewType, setShowNewType] = useState(false);
+  const [newTypeName, setNewTypeName] = useState('');
+  const [localAddedTypes, setLocalAddedTypes] = useState([]);
+
+  // Merge default + custom from DB + locally created types
+  const allTypes = [...DEFAULT_TYPES];
+  [...customTypes, ...localAddedTypes].forEach(ct => {
+    if (!allTypes.find(t => t.value === ct)) {
+      allTypes.push({ value: ct, label: ct.charAt(0).toUpperCase() + ct.slice(1) });
+    }
+  });
 
   function handleChange(event) {
     const { name, value } = event.target;
     setFormData((current) => ({ ...current, [name]: value }));
     setErrors((current) => ({ ...current, [name]: '' }));
+  }
+
+  function handleAddNewType() {
+    const trimmed = newTypeName.trim().toLowerCase();
+    if (!trimmed) return;
+    // Add to local state so it survives re-renders
+    if (!localAddedTypes.includes(trimmed)) {
+      setLocalAddedTypes(prev => [...prev, trimmed]);
+    }
+    setFormData(prev => ({ ...prev, type: trimmed }));
+    setShowNewType(false);
+    setNewTypeName('');
   }
 
   function validate() {
@@ -83,16 +106,49 @@ function SpeciesForm({ initialData = {}, onSubmit, onCancel, loading = false }) 
         )}
       </label>
 
-      <label className="field">
-        <span>Tipo *</span>
-        <select name="type" value={formData.type} onChange={handleChange} disabled={loading}>
-          {SPECIES_TYPES.map((type) => (
-            <option key={type.value} value={type.value}>
-              {type.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="field">
+        <span>Categoría / Tipo *</span>
+        {!showNewType ? (
+          <div className="type-selector">
+            <select name="type" value={formData.type} onChange={handleChange} disabled={loading}>
+              {allTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn btn-secondary btn-small btn-new-type"
+              onClick={() => setShowNewType(true)}
+              disabled={loading}
+              title="Crear nueva categoría"
+            >
+              + Nueva
+            </button>
+          </div>
+        ) : (
+          <div className="new-type-form">
+            <input
+              type="text"
+              placeholder="Nombre de la nueva categoría"
+              value={newTypeName}
+              onChange={e => setNewTypeName(e.target.value)}
+              autoFocus
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddNewType(); } }}
+            />
+            <div className="new-type-actions">
+              <button type="button" className="btn btn-primary btn-small" onClick={handleAddNewType} disabled={!newTypeName.trim()}>
+                Crear
+              </button>
+              <button type="button" className="btn btn-secondary btn-small" onClick={() => { setShowNewType(false); setNewTypeName(''); }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+        {errors.type && <small className="field-error">{errors.type}</small>}
+      </div>
 
       <label className="field">
         <span>Region habitual</span>

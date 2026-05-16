@@ -21,6 +21,8 @@ function TraceabilityPage() {
   const [showLogForm, setShowLogForm] = useState(false);
   const [showTreeForm, setShowTreeForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState('Todos');
+  const [treeQueue, setTreeQueue] = useState([]);
+  const [savingBatch, setSavingBatch] = useState(false);
   
   const [treeFormData, setTreeFormData] = useState({
     qr_tag: '',
@@ -136,39 +138,53 @@ function TraceabilityPage() {
     }
   }
 
-  async function handleTreeSubmit(e) {
+  function handleTreeSubmit(e) {
     e.preventDefault();
     if (!selectedSubzone) return;
 
+    const payload = {
+      subzone_id: selectedSubzone,
+      qr_tag: treeFormData.qr_tag,
+      species_id: treeFormData.species_id || null,
+      dap: parseFloat(treeFormData.dap),
+      commercial_height: parseFloat(treeFormData.commercial_height),
+      estimated_volume: parseFloat(treeFormData.estimated_volume),
+      legal_permit: treeFormData.legal_permit,
+      health_condition: treeFormData.health_condition,
+      geometry: { type: 'Point', coordinates: [-74.0, 4.0] },
+      _speciesLabel: species.find(s => String(s.id) === String(treeFormData.species_id))?.common_name || 'Sin especie'
+    };
+
+    if (treeQueue.some(t => t.qr_tag === payload.qr_tag)) {
+      setMessage({ type: 'error', text: 'Ya existe un árbol con ese QR en la cola.' });
+      return;
+    }
+
+    setTreeQueue(prev => [...prev, payload]);
+    setTreeFormData({ qr_tag: '', species_id: treeFormData.species_id, dap: '', commercial_height: '', estimated_volume: '', legal_permit: treeFormData.legal_permit, health_condition: treeFormData.health_condition });
+    setMessage({ type: 'success', text: `Árbol "${payload.qr_tag}" añadido a la cola (${treeQueue.length + 1} pendientes). Puedes seguir agregando.` });
+  }
+
+  function removeFromQueue(index) {
+    setTreeQueue(prev => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleSaveBatch() {
+    if (treeQueue.length === 0) return;
     try {
-      setLoading(true);
-      
-      const dummyGeometry = {
-        type: 'Point',
-        coordinates: [-74.0, 4.0]
-      };
-
-      const payload = {
-        subzone_id: selectedSubzone,
-        qr_tag: treeFormData.qr_tag,
-        species_id: treeFormData.species_id || null,
-        dap: parseFloat(treeFormData.dap),
-        commercial_height: parseFloat(treeFormData.commercial_height),
-        estimated_volume: parseFloat(treeFormData.estimated_volume),
-        legal_permit: treeFormData.legal_permit,
-        health_condition: treeFormData.health_condition,
-        geometry: dummyGeometry
-      };
-
-      await treesService.create(payload);
-      setMessage({ type: 'success', text: 'Árbol marcado correctamente.' });
+      setSavingBatch(true);
+      const cleanTrees = treeQueue.map(({ _speciesLabel, ...rest }) => rest);
+      const response = await treesService.createBatch(cleanTrees);
+      const { data, errors } = response.data;
+      const errCount = errors?.length || 0;
+      setMessage({ type: errCount > 0 ? 'error' : 'success', text: `${data.length} árboles registrados.${errCount > 0 ? ` ${errCount} errores: ${errors.map(e => e.error).join(', ')}` : ''}` });
+      setTreeQueue(errCount > 0 ? treeQueue.filter((_, i) => errors.some(e => e.index === i)) : []);
       setShowTreeForm(false);
-      setTreeFormData({ qr_tag: '', species_id: '', dap: '', commercial_height: '', estimated_volume: '', legal_permit: false, health_condition: 'Sano / Normal' });
       loadTrees(selectedSubzone);
     } catch (error) {
       setMessage({ type: 'error', text: getErrorMessage(error) });
     } finally {
-      setLoading(false);
+      setSavingBatch(false);
     }
   }
 
@@ -215,7 +231,7 @@ function TraceabilityPage() {
       <main className="traceability-main">
         <div className="page-header">
           <div>
-            <span className="eyebrow">Logística y Transporte</span>
+            <span className="eyebrow">🚚 Logística y Transporte</span>
             <h1>Trazabilidad de Árboles</h1>
             <p>Controla la extracción, movimiento por cable vía y despacho de madera.</p>
           </div>
@@ -360,12 +376,19 @@ function TraceabilityPage() {
                   ))}
                 </div>
               </div>
-              <button className="btn btn-primary btn-icon" onClick={() => {
-                setShowTreeForm(true);
-                setSelectedTree(null);
-              }}>
-                <span className="icon-plus">+</span> Marcar Árbol
-              </button>
+              <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+                {treeQueue.length > 0 && (
+                  <button className="btn btn-primary btn-icon" onClick={handleSaveBatch} disabled={savingBatch}>
+                    {savingBatch ? '⏳ Guardando...' : `💾 Guardar ${treeQueue.length} árbol(es)`}
+                  </button>
+                )}
+                <button className="btn btn-primary btn-icon" onClick={() => {
+                  setShowTreeForm(true);
+                  setSelectedTree(null);
+                }}>
+                  <span className="icon-plus">+</span> Marcar Árbol
+                </button>
+              </div>
             </div>
 
             {loading && trees.length === 0 ? (
@@ -415,54 +438,79 @@ function TraceabilityPage() {
         )}
       </main>
 
-      <Sidebar title={showTreeForm ? 'Marcar Nuevo Árbol' : selectedTree ? `Árbol QR: ${selectedTree.qr_tag}` : selectedSubzone ? 'Impacto del Lote' : 'Detalles'}>
+      <Sidebar title={showTreeForm ? `Marcar Árboles (${treeQueue.length} en cola)` : selectedTree ? `Árbol QR: ${selectedTree.qr_tag}` : selectedSubzone ? 'Impacto del Lote' : 'Detalles'}>
         {showTreeForm ? (
-          <form onSubmit={handleTreeSubmit} className="mt-3">
-            <p className="sidebar-copy">Registra un nuevo individuo marcándolo con un código QR y registrando sus métricas.</p>
-            <div className="form-group">
-              <label>Código QR / Tag ID *</label>
-              <input type="text" className="form-control" required placeholder="Ej. TR-2023-001" value={treeFormData.qr_tag} onChange={(e) => setTreeFormData({...treeFormData, qr_tag: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label>Especie</label>
-              <select className="form-control" value={treeFormData.species_id} onChange={(e) => setTreeFormData({...treeFormData, species_id: e.target.value})}>
-                <option value="">-- Seleccionar Especie --</option>
-                {species.map(s => <option key={s.id} value={s.id}>{s.common_name} ({s.scientific_name})</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>DAP (cm) *</label>
-              <input type="number" step="0.1" className="form-control" required value={treeFormData.dap} onChange={(e) => setTreeFormData({...treeFormData, dap: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label>Altura Comercial (m) *</label>
-              <input type="number" step="0.1" className="form-control" required value={treeFormData.commercial_height} onChange={(e) => setTreeFormData({...treeFormData, commercial_height: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label>Volumen Estimado (m³) *</label>
-              <input type="number" step="0.01" className="form-control" required value={treeFormData.estimated_volume} onChange={(e) => setTreeFormData({...treeFormData, estimated_volume: e.target.value})} />
-            </div>
-            <div className="form-group checkbox-group">
-              <label>
-                <input type="checkbox" checked={treeFormData.legal_permit} onChange={(e) => setTreeFormData({...treeFormData, legal_permit: e.target.checked})} />
-                Permiso Legal Aprobado (Indispensable para despacho)
-              </label>
-            </div>
-            <div className="form-group">
-              <label>Estado de Salud / Condición</label>
-              <select className="form-control" value={treeFormData.health_condition} onChange={(e) => setTreeFormData({...treeFormData, health_condition: e.target.value})}>
-                <option value="Sano / Normal">Sano / Normal</option>
-                <option value="Infectado (Plaga/Hongo)">Infectado (Plaga/Hongo)</option>
-                <option value="Crecimiento Acelerado">Crecimiento Acelerado</option>
-                <option value="Déficit de Crecimiento">Déficit de Crecimiento</option>
-                <option value="Riesgo de Caída">Riesgo de Caída</option>
-              </select>
-            </div>
-            <div className="form-actions">
-              <button type="button" className="btn btn-secondary" onClick={() => setShowTreeForm(false)}>Cancelar</button>
-              <button type="submit" className="btn btn-primary" disabled={loading}>Registrar Árbol</button>
-            </div>
-          </form>
+          <div className="mt-3">
+            <p className="sidebar-copy">Agrega múltiples árboles a la cola y guárdalos todos de una vez.</p>
+
+            {treeQueue.length > 0 && (
+              <div className="batch-queue">
+                <h4 className="sidebar-section-title">Cola de registro ({treeQueue.length})</h4>
+                <div className="queue-list">
+                  {treeQueue.map((item, idx) => (
+                    <div key={idx} className="queue-item">
+                      <div className="queue-item-info">
+                        <strong>{item.qr_tag}</strong>
+                        <small>{item._speciesLabel} · DAP {item.dap}cm · {item.estimated_volume}m³</small>
+                      </div>
+                      <button className="btn-remove" onClick={() => removeFromQueue(idx)} title="Quitar">✕</button>
+                    </div>
+                  ))}
+                </div>
+                <button className="btn btn-primary btn-block mt-2" onClick={handleSaveBatch} disabled={savingBatch}>
+                  {savingBatch ? '⏳ Guardando...' : `💾 Guardar ${treeQueue.length} árbol(es)`}
+                </button>
+                <div style={{height:'1px',background:'var(--border-color)',margin:'16px 0'}}></div>
+              </div>
+            )}
+
+            <h4 className="sidebar-section-title" style={{marginTop: treeQueue.length > 0 ? '0' : '8px'}}>Agregar otro árbol</h4>
+            <form onSubmit={handleTreeSubmit}>
+              <div className="form-group">
+                <label>Código QR / Tag ID *</label>
+                <input type="text" className="form-control" required placeholder="Ej. TR-2023-001" value={treeFormData.qr_tag} onChange={(e) => setTreeFormData({...treeFormData, qr_tag: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Especie</label>
+                <select className="form-control" value={treeFormData.species_id} onChange={(e) => setTreeFormData({...treeFormData, species_id: e.target.value})}>
+                  <option value="">-- Seleccionar Especie --</option>
+                  {species.map(s => <option key={s.id} value={s.id}>{s.common_name} ({s.scientific_name})</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>DAP (cm) *</label>
+                <input type="number" step="0.1" className="form-control" required value={treeFormData.dap} onChange={(e) => setTreeFormData({...treeFormData, dap: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Altura Comercial (m) *</label>
+                <input type="number" step="0.1" className="form-control" required value={treeFormData.commercial_height} onChange={(e) => setTreeFormData({...treeFormData, commercial_height: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Volumen Estimado (m³) *</label>
+                <input type="number" step="0.01" className="form-control" required value={treeFormData.estimated_volume} onChange={(e) => setTreeFormData({...treeFormData, estimated_volume: e.target.value})} />
+              </div>
+              <div className="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" checked={treeFormData.legal_permit} onChange={(e) => setTreeFormData({...treeFormData, legal_permit: e.target.checked})} />
+                  Permiso Legal Aprobado
+                </label>
+              </div>
+              <div className="form-group">
+                <label>Estado de Salud</label>
+                <select className="form-control" value={treeFormData.health_condition} onChange={(e) => setTreeFormData({...treeFormData, health_condition: e.target.value})}>
+                  <option value="Sano / Normal">Sano / Normal</option>
+                  <option value="Infectado (Plaga/Hongo)">Infectado (Plaga/Hongo)</option>
+                  <option value="Crecimiento Acelerado">Crecimiento Acelerado</option>
+                  <option value="Déficit de Crecimiento">Déficit de Crecimiento</option>
+                  <option value="Riesgo de Caída">Riesgo de Caída</option>
+                </select>
+              </div>
+              <div className="form-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowTreeForm(false); if(treeQueue.length > 0 && window.confirm('Tienes árboles en cola sin guardar. ¿Deseas descartarlos?')) setTreeQueue([]); }}>Cerrar</button>
+                <button type="submit" className="btn btn-primary">+ Añadir a cola</button>
+              </div>
+            </form>
+          </div>
         ) : !selectedTree && selectedSubzone ? (
           (() => {
             const currentSubzone = subzones.find(sz => sz.id === parseInt(selectedSubzone));

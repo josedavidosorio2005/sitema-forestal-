@@ -57,9 +57,9 @@ function ReportsPage() {
       <aside className="reports-sidebar">
         <div className="page-header">
           <div>
-            <span className="eyebrow">Analisis generados</span>
-            <h1>Reportes</h1>
-            <p style={{ fontSize: '0.85rem' }}>Selecciona uno o varios para imprimirlos juntos.</p>
+            <span className="eyebrow">📊 Análisis Ambiental</span>
+            <h1>Reportes Ecológicos</h1>
+            <p style={{ fontSize: '0.85rem' }}>Selecciona uno o varios reportes para visualizar o imprimir.</p>
           </div>
           <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
             <button className="btn btn-secondary" onClick={loadReports} style={{ flex: 1 }}>

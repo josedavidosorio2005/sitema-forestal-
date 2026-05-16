@@ -1,3 +1,45 @@
 .species-form {
   padding-bottom: 8px;
 }
+
+.type-selector {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.type-selector select {
+  flex: 1;
+}
+
+.btn-new-type {
+  white-space: nowrap;
+  font-size: 0.8rem !important;
+  padding: 6px 10px !important;
+}
+
+.new-type-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.new-type-form input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 2px solid #16a34a;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  background: #f0fdf4;
+}
+
+.new-type-form input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.new-type-actions {
+  display: flex;
+  gap: 6px;
+}

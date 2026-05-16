@@ -20,6 +20,7 @@ function ZonesPage() {
   const [showSubzoneForm, setShowSubzoneForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -96,9 +97,6 @@ function ZonesPage() {
   }
 
   async function handleDelete(zoneId) {
-    const confirmed = window.confirm('Eliminar esta zona y sus reportes?');
-    if (!confirmed) return;
-
     try {
       await zonesService.delete(zoneId);
       setZones((current) => current.filter((zone) => zone.id !== zoneId));
@@ -108,8 +106,10 @@ function ZonesPage() {
         setSelectedSubzone(null);
         setSubzones([]);
       }
+      setConfirmingDeleteId(null);
       setMessage({ type: 'success', text: 'Zona eliminada.' });
     } catch (error) {
+      setConfirmingDeleteId(null);
       setMessage({ type: 'error', text: getErrorMessage(error) });
     }
   }
@@ -224,9 +224,9 @@ function ZonesPage() {
       <main className="management-main">
         <div className="page-header">
           <div>
-            <span className="eyebrow">Zonas dibujadas</span>
-            <h1>Zonas guardadas</h1>
-            <p>Consulta detalles, edita metadatos, elimina zonas o genera reportes.</p>
+            <span className="eyebrow">📍 Gestión Territorial</span>
+            <h1>Zonas Forestales</h1>
+            <p>Administra, edita y genera reportes de tus zonas georreferenciadas.</p>
           </div>
         </div>
 
@@ -284,15 +284,39 @@ function ZonesPage() {
                   >
                     Ver en mapa
                   </a>
-                  <button
-                    className="btn btn-small btn-danger"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleDelete(zone.id);
-                    }}
-                  >
-                    Eliminar
-                  </button>
+                  {confirmingDeleteId === zone.id ? (
+                    <>
+                      <span style={{fontSize:'0.8rem',color:'#b91c1c',fontWeight:700}}>¿Eliminar?</span>
+                      <button
+                        className="btn btn-small btn-danger"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDelete(zone.id);
+                        }}
+                      >
+                        Sí, eliminar
+                      </button>
+                      <button
+                        className="btn btn-small btn-secondary"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setConfirmingDeleteId(null);
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="btn btn-small btn-danger"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setConfirmingDeleteId(zone.id);
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
