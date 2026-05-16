@@ -131,6 +131,20 @@ export function getSpeciesTypeClass(type) {
   return `species-type species-type-${type || 'default'}`;
 }
 
+export function getSpeciesCategoryLabel(category) {
+  const labels = {
+    maderable: 'Maderable',
+    frutal: 'Frutal',
+    restauracion: 'Restauracion',
+    proteccion: 'Proteccion de suelo',
+    ornamental: 'Ornamental',
+    medicinal: 'Medicinal',
+    otro: 'Otro',
+  };
+
+  return labels[category] || category || 'Sin categoria';
+}
+
 export function getSubzoneUseLabel(useType) {
   const labels = {
     plantacion: 'Plantacion',

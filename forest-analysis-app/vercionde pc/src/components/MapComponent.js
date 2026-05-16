@@ -277,18 +277,23 @@ function SavedZonesLayer({ zones, selectedZone, drawMode, onSelectZone }) {
                 }
               : {}
           }
-          style={{
-            color: selectedZone?.id === zone.id ? '#f59e0b' : '#116b3b',
-            fillColor: selectedZone?.id === zone.id ? '#fbbf24' : '#22c55e',
-            fillOpacity:
-              drawMode === 'subzone'
-                ? selectedZone?.id === zone.id
-                  ? 0.18
-                  : 0.08
-                : selectedZone?.id === zone.id
-                ? 0.34
-                : 0.18,
-            weight: selectedZone?.id === zone.id ? 3 : 2,
+          style={() => {
+            const color = zone.color || '#116b3b';
+            const active = selectedZone?.id === zone.id;
+
+            return {
+              color,
+              fillColor: color,
+              fillOpacity:
+                drawMode === 'subzone'
+                  ? active
+                    ? 0.2
+                    : 0.08
+                  : active
+                  ? 0.36
+                  : 0.2,
+              weight: active ? 4 : 2,
+            };
           }}
         />
       ))}
@@ -414,8 +419,9 @@ function PlaceSearchControl() {
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
 
-  function goToPlace(place) {
+  function goToPlace(place, closeAfter = true) {
     const lat = Number(place.lat);
     const lng = Number(place.lng ?? place.lon);
 
@@ -427,6 +433,10 @@ function PlaceSearchControl() {
       label: place.display_name || place.label || query,
     });
     setMessage('');
+    if (closeAfter) {
+      setIsOpen(false);
+      setResults([]);
+    }
 
     if (Array.isArray(place.boundingbox) && place.boundingbox.length === 4) {
       const [south, north, west, east] = place.boundingbox.map(Number);
@@ -477,7 +487,7 @@ function PlaceSearchControl() {
       setResults(payload);
 
       if (payload.length > 0) {
-        goToPlace(payload[0]);
+        goToPlace(payload[0], payload.length <= 1);
       } else {
         setMessage('No se encontraron lugares para esa busqueda.');
       }
@@ -491,38 +501,58 @@ function PlaceSearchControl() {
 
   return (
     <>
-      <form
-        className="map-search"
-        onSubmit={searchPlace}
+      <div
+        className={isOpen ? 'map-search open' : 'map-search collapsed'}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="map-search-row">
-          <input
-            type="search"
-            value={query}
-            placeholder="Direccion, finca, vereda o 4.65,-74.08"
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <button type="submit" disabled={loading}>
-            {loading ? '...' : 'Buscar'}
+        {!isOpen ? (
+          <button type="button" className="map-search-toggle" onClick={() => setIsOpen(true)}>
+            {selectedPlace ? 'Buscar otro lugar' : 'Buscar lugar'}
           </button>
-        </div>
-        {message && <div className="map-search-message">{message}</div>}
-        {results.length > 1 && (
-          <div className="map-search-results">
-            {results.map((place) => (
-              <button
-                key={`${place.place_id}-${place.lat}-${place.lon}`}
-                type="button"
-                onClick={() => goToPlace({ ...place, lng: place.lon })}
-              >
-                {place.display_name}
+        ) : (
+          <div className="map-search-panel">
+            <div className="map-search-header">
+              <strong>Buscar ubicacion</strong>
+              <button type="button" onClick={() => setIsOpen(false)}>
+                Minimizar
               </button>
-            ))}
+            </div>
+            <form onSubmit={searchPlace}>
+              <div className="map-search-row">
+                <input
+                  type="search"
+                  value={query}
+                  placeholder="Direccion, finca, vereda o 4.65,-74.08"
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+                <button type="submit" disabled={loading}>
+                  {loading ? '...' : 'Buscar'}
+                </button>
+              </div>
+            </form>
+            {message && <div className="map-search-message">{message}</div>}
+            {results.length > 1 && (
+              <div className="map-search-results">
+                {results.map((place) => (
+                  <button
+                    key={`${place.place_id}-${place.lat}-${place.lon}`}
+                    type="button"
+                    onClick={() => goToPlace({ ...place, lng: place.lon })}
+                  >
+                    {place.display_name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
-      </form>
+        {!isOpen && selectedPlace && (
+          <div className="map-search-chip" title={selectedPlace.label}>
+            {selectedPlace.label}
+          </div>
+        )}
+      </div>
 
       {selectedPlace && (
         <CircleMarker

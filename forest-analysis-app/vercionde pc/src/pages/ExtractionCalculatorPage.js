@@ -38,7 +38,7 @@ function ExtractionCalculatorPage() {
           <h1>Motor de extraccion de troncos</h1>
           <p>
             Calcula tension, resistencia minima, riesgos y material de cuerda para arrastre
-            forestal con salida JSON tecnica.
+            forestal con resultados listos para operacion de campo.
           </p>
         </div>
       </div>
@@ -111,13 +111,6 @@ function ExtractionCalculatorPage() {
             <strong>Formula usada</strong>
             <span>T = m*g*(sin(theta)+mu*cos(theta)); cuerda minima = T*FS</span>
           </div>
-
-          {result && (
-            <div className="json-panel">
-              <strong>Salida JSON</strong>
-              <pre>{JSON.stringify(result.json, null, 2)}</pre>
-            </div>
-          )}
         </section>
 
         <section className="result-panel">

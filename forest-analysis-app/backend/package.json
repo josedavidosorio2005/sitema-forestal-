@@ -9,7 +9,7 @@
     "dev": "nodemon src/index.js",
     "migrate": "node src/scripts/migrate.js",
     "seed": "node src/scripts/seed.js",
-    "check": "node --check src/index.js && node --check src/routes/validators.js && node --check src/controllers/subzonesController.js && node --check src/controllers/calculationsController.js && node --check src/routes/subzones.js && node --check src/routes/calculations.js && node --check src/utils/geojson.js && node --check src/utils/logDragTension.js",
+    "check": "node --check src/index.js && node --check src/models/queries.js && node --check src/routes/validators.js && node --check src/routes/zones.js && node --check src/routes/species.js && node --check src/routes/subzones.js && node --check src/routes/calculations.js && node --check src/controllers/zonesController.js && node --check src/controllers/speciesController.js && node --check src/controllers/subzonesController.js && node --check src/controllers/calculationsController.js && node --check src/controllers/zoneEventsController.js && node --check src/scripts/migrate.js && node --check src/scripts/seed.js && node --check src/utils/geojson.js && node --check src/utils/logDragTension.js",
     "health": "node src/scripts/health-check.js"
   },
   "keywords": [

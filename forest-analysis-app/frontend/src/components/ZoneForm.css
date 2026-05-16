@@ -41,3 +41,33 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color-picker-row input[type="color"] {
+  width: 46px;
+  height: 42px;
+  padding: 4px;
+}
+
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #ffffff;
+  border-radius: 7px;
+  box-shadow: 0 0 0 1px #cfded5;
+}
+
+.color-swatch.active {
+  box-shadow: 0 0 0 3px rgba(17, 107, 59, 0.28);
+}

@@ -5,6 +5,7 @@ import { speciesService } from '../services/api';
 import {
   formatDate,
   getErrorMessage,
+  getSpeciesCategoryLabel,
   getSpeciesTypeClass,
   getSpeciesTypeLabel,
 } from '../utils/helpers';
@@ -147,6 +148,7 @@ function SpeciesPage() {
                   <th>Nombre comun</th>
                   <th>Nombre cientifico</th>
                   <th>Tipo</th>
+                  <th>Categoria</th>
                   <th>Region</th>
                   <th>Creada</th>
                   <th>Acciones</th>
@@ -166,6 +168,7 @@ function SpeciesPage() {
                         {getSpeciesTypeLabel(item.type)}
                       </span>
                     </td>
+                    <td>{getSpeciesCategoryLabel(item.category)}</td>
                     <td>{item.region || 'Sin region'}</td>
                     <td>{formatDate(item.created_at)}</td>
                     <td>

@@ -44,7 +44,6 @@
 
 .formula-box,
 .recommendation-box,
-.json-panel,
 .risk-panel {
   display: grid;
   gap: 5px;
@@ -58,22 +57,6 @@
 .formula-box span,
 .recommendation-box span {
   color: var(--color-muted);
-}
-
-.json-panel {
-  background: #10251b;
-  border-color: #1f3d2e;
-  color: #ffffff;
-}
-
-.json-panel pre {
-  max-height: 360px;
-  overflow: auto;
-  margin: 4px 0 0;
-  color: #d9fbe5;
-  font-size: 0.82rem;
-  line-height: 1.45;
-  white-space: pre-wrap;
 }
 
 .result-panel {

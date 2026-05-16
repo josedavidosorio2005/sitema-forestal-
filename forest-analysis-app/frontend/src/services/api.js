@@ -56,4 +56,10 @@ export const subzonesService = {
   delete: (id) => apiClient.delete(`/subzones/${id}`),
 };
 
+export const zoneEventsService = {
+  create: (zoneId, data) => apiClient.post(`/zones/${zoneId}/events`, data),
+  getByZoneId: (zoneId) => apiClient.get(`/zones/${zoneId}/events`),
+  delete: (zoneId, eventId) => apiClient.delete(`/zones/${zoneId}/events/${eventId}`),
+};
+
 export default apiClient;

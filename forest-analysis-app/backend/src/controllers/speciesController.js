@@ -10,8 +10,15 @@ export const VALID_SPECIES_TYPES = [
   'comercial',
 ];
 
+const DEFAULT_CATEGORY = 'maderable';
+
 function currentUserId(req) {
   return req.user?.id || 1;
+}
+
+function normalizeCategory(value) {
+  const category = String(value || DEFAULT_CATEGORY).trim().toLowerCase();
+  return category || DEFAULT_CATEGORY;
 }
 
 function validateSpeciesPayload(payload) {
@@ -40,6 +47,7 @@ export async function createSpecies(req, res, next) {
       req.body.common_name.trim(),
       req.body.scientific_name.trim(),
       req.body.type,
+      normalizeCategory(req.body.category),
       req.body.description || null,
       req.body.region || null,
       req.body.image_url || null,
@@ -103,6 +111,7 @@ export async function updateSpecies(req, res, next) {
       req.body.common_name.trim(),
       req.body.scientific_name.trim(),
       req.body.type,
+      normalizeCategory(req.body.category),
       req.body.description || null,
       req.body.region || null,
       req.body.image_url || null,

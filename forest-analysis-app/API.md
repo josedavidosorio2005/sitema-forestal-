@@ -567,4 +567,22 @@ Actualmente, el sistema usa `user_id = 1` por defecto. Para futuras implementaci
 
 ## 📖 Más Información
 
+### Eventos de Trazabilidad por Zona
+
+- `GET /api/zones/:zoneId/events`: lista el historial operativo de la zona.
+- `POST /api/zones/:zoneId/events`: agrega un evento de `preparacion`, `siembra`, `mantenimiento`, `cosecha`, `arrastre`, `transporte`, `inspeccion`, `incidente` u `otro`.
+- `DELETE /api/zones/:zoneId/events/:eventId`: elimina logicamente un evento.
+
+Campos principales:
+- `event_type`: tipo de evento.
+- `title`: resumen corto de lo que paso.
+- `description`: detalle del procedimiento sobre arboles o terreno.
+- `actor`: responsable.
+- `event_date`: fecha ISO opcional.
+
+### Campos Nuevos
+
+- `zones.color`: color hexadecimal de zona, por ejemplo `#116b3b`, reflejado en el mapa.
+- `species.category`: categoria de uso de la especie, por ejemplo `maderable`, `frutal`, `restauracion`, `proteccion`, `ornamental`, `medicinal` u `otro`.
+
 Ver `README.md` y `SETUP.md` para detalles de instalación y configuración.

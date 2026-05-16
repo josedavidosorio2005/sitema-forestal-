@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS zones (
   name VARCHAR(255) NOT NULL,
   description TEXT,
   region VARCHAR(255),
+  color VARCHAR(20) DEFAULT '#116b3b',
   geometry_geojson JSONB NOT NULL,
   area_m2 DOUBLE PRECISION NOT NULL,
   area_ha DOUBLE PRECISION NOT NULL,
@@ -29,6 +30,7 @@ CREATE TABLE IF NOT EXISTS species (
   common_name VARCHAR(255) NOT NULL,
   scientific_name VARCHAR(255) NOT NULL,
   type VARCHAR(50) NOT NULL CHECK (type IN ('nativa', 'introducida', 'invasora', 'ornamental', 'comercial')),
+  category VARCHAR(100),
   description TEXT,
   region VARCHAR(255),
   image_url VARCHAR(500),
@@ -73,6 +75,19 @@ CREATE TABLE IF NOT EXISTS subzones (
   deleted_at TIMESTAMP NULL
 );
 
+CREATE TABLE IF NOT EXISTS zone_events (
+  id SERIAL PRIMARY KEY,
+  zone_id INTEGER REFERENCES zones(id) ON DELETE CASCADE,
+  event_type VARCHAR(80) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  actor VARCHAR(255),
+  event_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_zones_user_id ON zones(user_id);
 CREATE INDEX IF NOT EXISTS idx_zones_deleted_at ON zones(deleted_at);
 CREATE INDEX IF NOT EXISTS idx_species_user_id ON species(user_id);
@@ -81,6 +96,8 @@ CREATE INDEX IF NOT EXISTS idx_reports_zone_id ON reports(zone_id);
 CREATE INDEX IF NOT EXISTS idx_subzones_zone_id ON subzones(zone_id);
 CREATE INDEX IF NOT EXISTS idx_subzones_use_type ON subzones(use_type);
 CREATE INDEX IF NOT EXISTS idx_subzones_deleted_at ON subzones(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_zone_events_zone_id ON zone_events(zone_id);
+CREATE INDEX IF NOT EXISTS idx_zone_events_event_date ON zone_events(event_date);
 `;
 
 export const POSTGIS_OPTIONAL_SQL = `
@@ -90,6 +107,18 @@ UPDATE zones
 SET geom = ST_SetSRID(ST_GeomFromGeoJSON(geometry_geojson::text), 4326)
 WHERE geom IS NULL;
 CREATE INDEX IF NOT EXISTS idx_zones_geom ON zones USING GIST (geom);
+`;
+
+export const ENSURE_DEFAULT_USER_POSTGRES_SQL = `
+INSERT INTO users (id, username, email, password_hash, full_name)
+VALUES (1, 'local-user', 'local-user@forest.local', 'local-password-hash', 'Usuario Local')
+ON CONFLICT (id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('users', 'id'), GREATEST((SELECT MAX(id) FROM users), 1));
+`;
+
+export const ENSURE_DEFAULT_USER_SQLITE_SQL = `
+INSERT OR IGNORE INTO users (id, username, email, password_hash, full_name)
+VALUES (1, 'local-user', 'local-user@forest.local', 'local-password-hash', 'Usuario Local');
 `;
 
 export const CREATE_TABLES_SQLITE_SQL = `
@@ -109,6 +138,7 @@ CREATE TABLE IF NOT EXISTS zones (
   name TEXT NOT NULL,
   description TEXT,
   region TEXT,
+  color TEXT DEFAULT '#116b3b',
   geometry_geojson TEXT NOT NULL,
   area_m2 REAL NOT NULL,
   area_ha REAL NOT NULL,
@@ -123,6 +153,7 @@ CREATE TABLE IF NOT EXISTS species (
   common_name TEXT NOT NULL,
   scientific_name TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('nativa', 'introducida', 'invasora', 'ornamental', 'comercial')),
+  category TEXT,
   description TEXT,
   region TEXT,
   image_url TEXT,
@@ -167,6 +198,19 @@ CREATE TABLE IF NOT EXISTS subzones (
   deleted_at TEXT NULL
 );
 
+CREATE TABLE IF NOT EXISTS zone_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  zone_id INTEGER REFERENCES zones(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  actor TEXT,
+  event_date TEXT DEFAULT CURRENT_TIMESTAMP,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TEXT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_zones_user_id ON zones(user_id);
 CREATE INDEX IF NOT EXISTS idx_zones_deleted_at ON zones(deleted_at);
 CREATE INDEX IF NOT EXISTS idx_species_user_id ON species(user_id);
@@ -175,12 +219,14 @@ CREATE INDEX IF NOT EXISTS idx_reports_zone_id ON reports(zone_id);
 CREATE INDEX IF NOT EXISTS idx_subzones_zone_id ON subzones(zone_id);
 CREATE INDEX IF NOT EXISTS idx_subzones_use_type ON subzones(use_type);
 CREATE INDEX IF NOT EXISTS idx_subzones_deleted_at ON subzones(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_zone_events_zone_id ON zone_events(zone_id);
+CREATE INDEX IF NOT EXISTS idx_zone_events_event_date ON zone_events(event_date);
 `;
 
 export const zonesQueries = {
   create: `
-    INSERT INTO zones (user_id, name, description, region, geometry_geojson, area_m2, area_ha)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO zones (user_id, name, description, region, color, geometry_geojson, area_m2, area_ha)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING *;
   `,
   getAll: `
@@ -197,6 +243,7 @@ export const zonesQueries = {
     SET name = $2,
         description = $3,
         region = $4,
+        color = $5,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = $1 AND deleted_at IS NULL
     RETURNING *;
@@ -211,8 +258,8 @@ export const zonesQueries = {
 
 export const speciesQueries = {
   create: `
-    INSERT INTO species (user_id, common_name, scientific_name, type, description, region, image_url, observations)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    INSERT INTO species (user_id, common_name, scientific_name, type, category, description, region, image_url, observations)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING *;
   `,
   getAll: `
@@ -234,16 +281,45 @@ export const speciesQueries = {
     SET common_name = $2,
         scientific_name = $3,
         type = $4,
-        description = $5,
-        region = $6,
-        image_url = $7,
-        observations = $8,
+        category = $5,
+        description = $6,
+        region = $7,
+        image_url = $8,
+        observations = $9,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = $1 AND deleted_at IS NULL
     RETURNING *;
   `,
   softDelete: `
     UPDATE species
+    SET deleted_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND deleted_at IS NULL
+    RETURNING *;
+  `,
+};
+
+export const zoneEventsQueries = {
+  create: `
+    INSERT INTO zone_events (
+      zone_id,
+      event_type,
+      title,
+      description,
+      actor,
+      event_date
+    )
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING *;
+  `,
+  getByZoneId: `
+    SELECT ze.*, z.name AS zone_name
+    FROM zone_events ze
+    JOIN zones z ON ze.zone_id = z.id
+    WHERE ze.zone_id = $1 AND z.deleted_at IS NULL AND ze.deleted_at IS NULL
+    ORDER BY ze.event_date DESC, ze.created_at DESC;
+  `,
+  softDelete: `
+    UPDATE zone_events
     SET deleted_at = CURRENT_TIMESTAMP
     WHERE id = $1 AND deleted_at IS NULL
     RETURNING *;

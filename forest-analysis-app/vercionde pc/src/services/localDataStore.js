@@ -7,6 +7,7 @@ const DB_KEY = 'forest-analysis-mobile-db-v1';
 const VALID_SPECIES_TYPES = ['nativa', 'introducida', 'invasora', 'ornamental', 'comercial'];
 const VALID_USE_TYPES = ['plantacion', 'recoleccion', 'conservacion', 'mixto'];
 const VALID_OPERATION_TYPES = ['sembrar', 'recolectar', 'monitorear'];
+const VALID_EVENT_TYPES = ['preparacion', 'siembra', 'mantenimiento', 'cosecha', 'arrastre', 'transporte', 'inspeccion', 'incidente', 'otro'];
 
 const seedSpecies = [
   {
@@ -15,6 +16,7 @@ const seedSpecies = [
     common_name: 'Pino',
     scientific_name: 'Pinus patula',
     type: 'comercial',
+    category: 'maderable',
     description: 'Especie comercial usada en plantaciones forestales.',
     region: 'Andina',
     image_url: null,
@@ -26,6 +28,7 @@ const seedSpecies = [
     common_name: 'Cedro',
     scientific_name: 'Cedrela odorata',
     type: 'nativa',
+    category: 'maderable',
     description: 'Especie nativa de alto valor forestal.',
     region: 'Tropical',
     image_url: null,
@@ -37,6 +40,7 @@ const seedSpecies = [
     common_name: 'Eucalipto',
     scientific_name: 'Eucalyptus globulus',
     type: 'comercial',
+    category: 'maderable',
     description: 'Especie comercial de crecimiento rapido.',
     region: 'Andina',
     image_url: null,
@@ -56,11 +60,13 @@ function initialDb() {
       species: seedSpecies.length + 1,
       reports: 1,
       subzones: 1,
+      zoneEvents: 1,
     },
     zones: [],
     species: seedSpecies,
     reports: [],
     subzones: [],
+    zoneEvents: [],
   };
 }
 
@@ -195,6 +201,7 @@ function probableSpeciesFor(db, region) {
     common_name: species.common_name,
     scientific_name: species.scientific_name,
     type: species.type,
+    category: species.category || 'maderable',
     probability: Math.max(0.45, 0.9 - index * 0.1),
   }));
 }
@@ -213,6 +220,7 @@ function confirmedSpeciesFor(db, input = []) {
       common_name: species.common_name,
       scientific_name: species.scientific_name,
       type: species.type,
+      category: species.category || 'maderable',
     }));
 }
 
@@ -262,6 +270,7 @@ export const localDataStore = {
         name: String(payload.name || '').trim(),
         description: payload.description || null,
         region: payload.region || null,
+        color: payload.color || '#116b3b',
         geometry,
         area_m2: area.areaM2,
         area_ha: area.areaHa,
@@ -297,6 +306,7 @@ export const localDataStore = {
         name,
         description: payload.description || null,
         region: payload.region || null,
+        color: payload.color || '#116b3b',
         updated_at: now(),
       });
       saveDb(db);
@@ -311,6 +321,7 @@ export const localDataStore = {
         if (Number(subzone.zone_id) === Number(id)) subzone.deleted_at = now();
       });
       db.reports = db.reports.filter((report) => Number(report.zone_id) !== Number(id));
+      db.zoneEvents = db.zoneEvents.filter((event) => Number(event.zone_id) !== Number(id));
       saveDb(db);
       return ok(null, 'Zona eliminada del dispositivo.');
     },
@@ -324,6 +335,58 @@ export const localDataStore = {
 
       if (!report) fail('La zona aun no tiene reportes.', 404);
       return ok(reportWithZone(db, report));
+    },
+  },
+
+  zoneEvents: {
+    async create(zoneId, payload) {
+      const db = loadDb();
+      const zone = findZone(db, zoneId);
+      const title = String(payload.title || '').trim();
+      const eventType = payload.event_type || 'otro';
+
+      if (!VALID_EVENT_TYPES.includes(eventType)) fail('Tipo de evento invalido.', 400);
+      if (!title) fail('El titulo del evento es requerido.', 400);
+
+      const timestamp = now();
+      const event = {
+        id: nextId(db, 'zoneEvents'),
+        zone_id: Number(zone.id),
+        zone_name: zone.name,
+        event_type: eventType,
+        title,
+        description: payload.description || null,
+        actor: payload.actor || null,
+        event_date: payload.event_date || timestamp,
+        created_at: timestamp,
+        updated_at: timestamp,
+        deleted_at: null,
+      };
+
+      db.zoneEvents.unshift(event);
+      saveDb(db);
+      return ok(event, 'Evento guardado en el dispositivo.');
+    },
+
+    async getByZoneId(zoneId) {
+      const db = loadDb();
+      findZone(db, zoneId);
+      const events = activeItems(db.zoneEvents || [])
+        .filter((event) => Number(event.zone_id) === Number(zoneId))
+        .sort((a, b) => new Date(b.event_date || b.created_at) - new Date(a.event_date || a.created_at));
+      return ok(events);
+    },
+
+    async delete(zoneId, eventId) {
+      const db = loadDb();
+      findZone(db, zoneId);
+      const event = (db.zoneEvents || []).find(
+        (item) => Number(item.id) === Number(eventId) && Number(item.zone_id) === Number(zoneId) && !item.deleted_at
+      );
+      if (!event) fail('Evento no encontrado en el dispositivo.', 404);
+      event.deleted_at = now();
+      saveDb(db);
+      return ok(null, 'Evento eliminado del dispositivo.');
     },
   },
 
@@ -344,6 +407,7 @@ export const localDataStore = {
         common_name: commonName,
         scientific_name: scientificName,
         type: payload.type,
+        category: payload.category || 'maderable',
         description: payload.description || null,
         region: payload.region || null,
         image_url: payload.image_url || null,
@@ -385,6 +449,7 @@ export const localDataStore = {
         common_name: commonName,
         scientific_name: scientificName,
         type: payload.type,
+        category: payload.category || 'maderable',
         description: payload.description || null,
         region: payload.region || null,
         image_url: payload.image_url || null,
@@ -566,4 +631,3 @@ export const localDataStore = {
     },
   },
 };
-

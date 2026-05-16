@@ -93,6 +93,7 @@ function HomePage() {
         name: formData.name,
         description: formData.description,
         region: formData.region,
+        color: formData.color,
         geometry: currentPolygon.geometry,
       });
       const savedZone = zoneResponse.data.data;

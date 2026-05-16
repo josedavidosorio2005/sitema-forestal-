@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './ZoneForm.css';
 
+const ZONE_COLORS = ['#116b3b', '#2563eb', '#f59e0b', '#dc2626', '#7c3aed', '#0f766e'];
+
 function ZoneForm({
   initialData = {},
   onSubmit,
@@ -13,6 +15,7 @@ function ZoneForm({
     name: initialData.name || '',
     description: initialData.description || '',
     region: initialData.region || '',
+    color: initialData.color || '#116b3b',
     confirmed_species_ids: initialData.confirmed_species_ids || [],
   });
   const [errors, setErrors] = useState({});
@@ -52,6 +55,7 @@ function ZoneForm({
       name: formData.name.trim(),
       description: formData.description.trim(),
       region: formData.region.trim(),
+      color: formData.color,
     });
   }
 
@@ -90,6 +94,36 @@ function ZoneForm({
           disabled={loading}
           rows="4"
         />
+      </label>
+
+      <label className="field">
+        <span>Color de la zona</span>
+        <div className="color-picker-row">
+          <input
+            name="color"
+            type="color"
+            value={formData.color}
+            onChange={handleChange}
+            disabled={loading}
+            aria-label="Color de la zona"
+          />
+          <div className="color-swatches">
+            {ZONE_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className={formData.color === color ? 'color-swatch active' : 'color-swatch'}
+                style={{ backgroundColor: color }}
+                onClick={() => setFormData((current) => ({ ...current, color }))}
+                disabled={loading}
+                aria-label={`Usar color ${color}`}
+              />
+            ))}
+          </div>
+        </div>
+        <small className="field-hint">
+          Este color se refleja en el mapa para distinguir cada zona.
+        </small>
       </label>
 
       {showConfirmedSpecies && (

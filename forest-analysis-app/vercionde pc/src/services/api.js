@@ -143,4 +143,19 @@ export const subzonesService = {
   ),
 };
 
+export const zoneEventsService = {
+  create: (zoneId, data) => withMobileStorage(
+    () => apiClient.post(`/zones/${zoneId}/events`, data),
+    () => localDataStore.zoneEvents.create(zoneId, data)
+  ),
+  getByZoneId: (zoneId) => withMobileStorage(
+    () => apiClient.get(`/zones/${zoneId}/events`),
+    () => localDataStore.zoneEvents.getByZoneId(zoneId)
+  ),
+  delete: (zoneId, eventId) => withMobileStorage(
+    () => apiClient.delete(`/zones/${zoneId}/events/${eventId}`),
+    () => localDataStore.zoneEvents.delete(zoneId, eventId)
+  ),
+};
+
 export default apiClient;

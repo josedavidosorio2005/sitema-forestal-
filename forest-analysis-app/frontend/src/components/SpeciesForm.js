@@ -9,11 +9,22 @@ const SPECIES_TYPES = [
   { value: 'comercial', label: 'Comercial' },
 ];
 
+const SPECIES_CATEGORIES = [
+  { value: 'maderable', label: 'Maderable' },
+  { value: 'frutal', label: 'Frutal' },
+  { value: 'restauracion', label: 'Restauracion' },
+  { value: 'proteccion', label: 'Proteccion de suelo' },
+  { value: 'ornamental', label: 'Ornamental' },
+  { value: 'medicinal', label: 'Medicinal' },
+  { value: 'otro', label: 'Otro' },
+];
+
 function SpeciesForm({ initialData = {}, onSubmit, onCancel, loading = false }) {
   const [formData, setFormData] = useState({
     common_name: initialData.common_name || '',
     scientific_name: initialData.scientific_name || '',
     type: initialData.type || 'nativa',
+    category: initialData.category || 'maderable',
     description: initialData.description || '',
     region: initialData.region || '',
     image_url: initialData.image_url || '',
@@ -89,6 +100,17 @@ function SpeciesForm({ initialData = {}, onSubmit, onCancel, loading = false }) 
           {SPECIES_TYPES.map((type) => (
             <option key={type.value} value={type.value}>
               {type.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="field">
+        <span>Categoria de uso</span>
+        <select name="category" value={formData.category} onChange={handleChange} disabled={loading}>
+          {SPECIES_CATEGORIES.map((category) => (
+            <option key={category.value} value={category.value}>
+              {category.label}
             </option>
           ))}
         </select>

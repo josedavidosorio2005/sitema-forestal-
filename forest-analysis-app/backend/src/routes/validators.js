@@ -5,6 +5,7 @@ const SPECIES_TYPES = ['nativa', 'introducida', 'invasora', 'ornamental', 'comer
 const SUBZONE_USE_TYPES = ['plantacion', 'recoleccion', 'conservacion', 'mixto'];
 const SUBZONE_OPERATION_TYPES = ['sembrar', 'recolectar', 'monitorear'];
 const LOG_DRAG_SOILS = ['pasto', 'tierra_seca', 'tierra', 'lodo', 'grava'];
+const ZONE_EVENT_TYPES = ['preparacion', 'siembra', 'mantenimiento', 'cosecha', 'arrastre', 'transporte', 'inspeccion', 'incidente', 'otro'];
 
 function optionalText(field, max = 1000) {
   return body(field)
@@ -34,6 +35,10 @@ export const zoneCreateValidators = [
     .withMessage('El nombre de la zona no puede superar 255 caracteres.'),
   optionalText('description', 2000),
   optionalText('region', 255),
+  body('color')
+    .optional({ nullable: true, checkFalsy: true })
+    .matches(/^#[0-9a-fA-F]{6}$/)
+    .withMessage('color debe ser hexadecimal, ejemplo #116b3b.'),
   body('geometry').custom((geometry) => {
     normalizePolygonGeometry(geometry);
     return true;
@@ -52,6 +57,10 @@ export const zoneUpdateValidators = [
     .withMessage('El nombre de la zona no puede superar 255 caracteres.'),
   optionalText('description', 2000),
   optionalText('region', 255),
+  body('color')
+    .optional({ nullable: true, checkFalsy: true })
+    .matches(/^#[0-9a-fA-F]{6}$/)
+    .withMessage('color debe ser hexadecimal, ejemplo #116b3b.'),
 ];
 
 export const speciesCreateOrUpdateValidators = [
@@ -74,6 +83,7 @@ export const speciesCreateOrUpdateValidators = [
   body('type')
     .isIn(SPECIES_TYPES)
     .withMessage(`Tipo invalido. Usa uno de: ${SPECIES_TYPES.join(', ')}.`),
+  optionalText('category', 100),
   optionalText('description', 2000),
   optionalText('region', 255),
   body('image_url')
@@ -221,4 +231,25 @@ export const logDragTensionValidators = [
 
     return true;
   }),
+];
+
+export const zoneEventCreateValidators = [
+  idParam('zoneId'),
+  body('event_type')
+    .isIn(ZONE_EVENT_TYPES)
+    .withMessage(`Tipo de evento invalido. Usa uno de: ${ZONE_EVENT_TYPES.join(', ')}.`),
+  body('title')
+    .isString()
+    .withMessage('El titulo del evento es requerido.')
+    .trim()
+    .notEmpty()
+    .withMessage('El titulo del evento es requerido.')
+    .isLength({ max: 255 })
+    .withMessage('El titulo no puede superar 255 caracteres.'),
+  optionalText('description', 2000),
+  optionalText('actor', 255),
+  body('event_date')
+    .optional({ nullable: true, checkFalsy: true })
+    .isISO8601()
+    .withMessage('event_date debe ser una fecha ISO valida.'),
 ];

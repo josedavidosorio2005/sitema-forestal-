@@ -24,6 +24,7 @@ export function findProbableSpecies(catalogSpecies, region) {
       common_name: species.common_name,
       scientific_name: species.scientific_name,
       type: species.type,
+      category: species.category || 'maderable',
       region: species.region,
       probability: Number(scoreSpeciesByRegion(species, region).toFixed(2)),
       match_reason: region
@@ -50,6 +51,7 @@ export function normalizeConfirmedSpecies(input = [], catalogSpecies = []) {
           common_name: catalogItem.common_name,
           scientific_name: catalogItem.scientific_name,
           type: catalogItem.type,
+          category: catalogItem.category || 'maderable',
           source: 'manual-catalog-selection',
         };
       }
@@ -60,6 +62,7 @@ export function normalizeConfirmedSpecies(input = [], catalogSpecies = []) {
           common_name: item.common_name,
           scientific_name: item.scientific_name || '',
           type: item.type || '',
+          category: item.category || 'otro',
           source: 'manual-entry',
         };
       }

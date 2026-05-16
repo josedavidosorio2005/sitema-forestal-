@@ -4,9 +4,27 @@ import Sidebar from '../components/Sidebar';
 import SubzoneForm from '../components/SubzoneForm';
 import SubzonesPanel from '../components/SubzonesPanel';
 import ZoneForm from '../components/ZoneForm';
-import { reportsService, speciesService, subzonesService, zonesService } from '../services/api';
+import {
+  reportsService,
+  speciesService,
+  subzonesService,
+  zoneEventsService,
+  zonesService,
+} from '../services/api';
 import { formatDate, formatNumber, getErrorMessage } from '../utils/helpers';
 import './ZonesPage.css';
+
+const EVENT_TYPES = [
+  { value: 'preparacion', label: 'Preparacion' },
+  { value: 'siembra', label: 'Siembra' },
+  { value: 'mantenimiento', label: 'Mantenimiento' },
+  { value: 'cosecha', label: 'Cosecha' },
+  { value: 'arrastre', label: 'Arrastre' },
+  { value: 'transporte', label: 'Transporte' },
+  { value: 'inspeccion', label: 'Inspeccion' },
+  { value: 'incidente', label: 'Incidente' },
+  { value: 'otro', label: 'Otro' },
+];
 
 function ZonesPage() {
   const [zones, setZones] = useState([]);
@@ -14,6 +32,13 @@ function ZonesPage() {
   const [selectedZone, setSelectedZone] = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
   const [subzones, setSubzones] = useState([]);
+  const [zoneEvents, setZoneEvents] = useState([]);
+  const [eventForm, setEventForm] = useState({
+    event_type: 'inspeccion',
+    title: '',
+    description: '',
+    actor: '',
+  });
   const [selectedSubzone, setSelectedSubzone] = useState(null);
   const [editingZone, setEditingZone] = useState(null);
   const [editingSubzone, setEditingSubzone] = useState(null);
@@ -47,6 +72,7 @@ function ZonesPage() {
     setEditingSubzone(null);
     setShowSubzoneForm(false);
     setSelectedSubzone(null);
+    setZoneEvents([]);
     setMessage(null);
 
     try {
@@ -62,6 +88,13 @@ function ZonesPage() {
     } catch (error) {
       setSubzones([]);
       setMessage({ type: 'error', text: getErrorMessage(error) });
+    }
+
+    try {
+      const response = await zoneEventsService.getByZoneId(zone.id);
+      setZoneEvents(response.data.data);
+    } catch {
+      setZoneEvents([]);
     }
   }
 
@@ -95,6 +128,7 @@ function ZonesPage() {
         setSelectedReport(null);
         setSelectedSubzone(null);
         setSubzones([]);
+        setZoneEvents([]);
       }
       setMessage({ type: 'success', text: 'Zona eliminada.' });
     } catch (error) {
@@ -172,6 +206,51 @@ function ZonesPage() {
     }
   }
 
+  async function handleCreateEvent(event) {
+    event.preventDefault();
+    if (!selectedZone) return;
+
+    const title = eventForm.title.trim();
+    if (!title) {
+      setMessage({ type: 'error', text: 'Escribe un titulo para el evento de trazabilidad.' });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await zoneEventsService.create(selectedZone.id, {
+        ...eventForm,
+        title,
+        description: eventForm.description.trim(),
+        actor: eventForm.actor.trim(),
+        event_date: new Date().toISOString(),
+      });
+      setZoneEvents((current) => [response.data.data, ...current]);
+      setEventForm({
+        event_type: 'inspeccion',
+        title: '',
+        description: '',
+        actor: '',
+      });
+      setMessage({ type: 'success', text: 'Evento agregado al historial de la zona.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: getErrorMessage(error) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteEvent(eventId) {
+    if (!selectedZone) return;
+
+    try {
+      await zoneEventsService.delete(selectedZone.id, eventId);
+      setZoneEvents((current) => current.filter((item) => item.id !== eventId));
+    } catch (error) {
+      setMessage({ type: 'error', text: getErrorMessage(error) });
+    }
+  }
+
   function openCreateSubzone() {
     if (!selectedZone) {
       setMessage({ type: 'error', text: 'Selecciona una zona antes de crear subzonas.' });
@@ -187,13 +266,15 @@ function ZonesPage() {
     setEditingZone(null);
     setEditingSubzone(null);
     setSelectedSubzone(null);
+    setZoneEvents([]);
     setShowSubzoneForm(true);
     setMessage(null);
 
     try {
-      const [reportResponse, subzonesResponse] = await Promise.allSettled([
+      const [reportResponse, subzonesResponse, eventsResponse] = await Promise.allSettled([
         zonesService.getReport(zone.id),
         subzonesService.getByZoneId(zone.id),
+        zoneEventsService.getByZoneId(zone.id),
       ]);
 
       setSelectedReport(
@@ -201,6 +282,9 @@ function ZonesPage() {
       );
       setSubzones(
         subzonesResponse.status === 'fulfilled' ? subzonesResponse.value.data.data : []
+      );
+      setZoneEvents(
+        eventsResponse.status === 'fulfilled' ? eventsResponse.value.data.data : []
       );
     } catch (error) {
       setMessage({ type: 'error', text: getErrorMessage(error) });
@@ -233,7 +317,10 @@ function ZonesPage() {
                 onClick={() => selectZone(zone)}
               >
                 <div className="zone-card-header">
-                  <h2>{zone.name}</h2>
+                  <h2>
+                    <span className="zone-color-dot" style={{ backgroundColor: zone.color || '#116b3b' }} />
+                    {zone.name}
+                  </h2>
                   <span>{formatDate(zone.created_at)}</span>
                 </div>
                 <p>{zone.description || 'Sin descripcion'}</p>
@@ -340,6 +427,79 @@ function ZonesPage() {
                   }}
                   onDelete={handleDeleteSubzone}
                 />
+              </section>
+            )}
+            {selectedZone && (
+              <section className="sidebar-section">
+                <h3 className="sidebar-section-title">Historial y trazabilidad</h3>
+                <form className="trace-form" onSubmit={handleCreateEvent}>
+                  <div className="trace-form-row">
+                    <select
+                      value={eventForm.event_type}
+                      onChange={(event) =>
+                        setEventForm((current) => ({ ...current, event_type: event.target.value }))
+                      }
+                      disabled={loading}
+                    >
+                      {EVENT_TYPES.map((type) => (
+                        <option key={type.value} value={type.value}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      value={eventForm.actor}
+                      placeholder="Responsable"
+                      onChange={(event) =>
+                        setEventForm((current) => ({ ...current, actor: event.target.value }))
+                      }
+                      disabled={loading}
+                    />
+                  </div>
+                  <input
+                    value={eventForm.title}
+                    placeholder="Que paso con los arboles o el terreno"
+                    onChange={(event) =>
+                      setEventForm((current) => ({ ...current, title: event.target.value }))
+                    }
+                    disabled={loading}
+                  />
+                  <textarea
+                    value={eventForm.description}
+                    placeholder="Detalle operativo, movimiento, cosecha, arrastre, transporte, incidente..."
+                    onChange={(event) =>
+                      setEventForm((current) => ({ ...current, description: event.target.value }))
+                    }
+                    disabled={loading}
+                    rows="3"
+                  />
+                  <button className="btn btn-primary btn-block" type="submit" disabled={loading}>
+                    Agregar evento
+                  </button>
+                </form>
+                <div className="trace-list">
+                  {zoneEvents.length === 0 ? (
+                    <p className="sidebar-copy">Sin eventos registrados para esta zona.</p>
+                  ) : (
+                    zoneEvents.map((item) => (
+                      <article key={item.id} className="trace-item">
+                        <div>
+                          <span>{item.event_type}</span>
+                          <strong>{item.title}</strong>
+                          <small>{formatDate(item.event_date || item.created_at)}{item.actor ? ` / ${item.actor}` : ''}</small>
+                        </div>
+                        {item.description && <p>{item.description}</p>}
+                        <button
+                          type="button"
+                          className="btn btn-small btn-secondary"
+                          onClick={() => handleDeleteEvent(item.id)}
+                        >
+                          Quitar
+                        </button>
+                      </article>
+                    ))
+                  )}
+                </div>
               </section>
             )}
           </>

@@ -306,3 +306,12 @@ services/api.js (backend)
 **🎉 ¡Proyecto listo para explorar!**
 
 Para cualquier pregunta, revisa la documentación correspondiente.
+
+---
+
+## Entrega Multiplataforma Reciente
+
+- Web: calculadora de extraccion sin bloque JSON visible, buscador de mapa plegable, color de zona, categorias de especies e historial de trazabilidad.
+- PC: mismos flujos replicados en `vercionde pc`, con persistencia local y EXE portable.
+- Android: mismos flujos replicados en `lamda vercion de andid`, con almacenamiento local y APK debug generado.
+- Backend: migracion automatica para color de zona, categoria de especie, eventos de trazabilidad y usuario local base.

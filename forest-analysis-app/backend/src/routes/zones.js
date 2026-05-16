@@ -2,11 +2,13 @@ import express from 'express';
 import * as zonesController from '../controllers/zonesController.js';
 import * as reportsController from '../controllers/reportsController.js';
 import * as subzonesController from '../controllers/subzonesController.js';
+import * as zoneEventsController from '../controllers/zoneEventsController.js';
 import { handleValidation } from '../middleware/validate.js';
 import {
   idParam,
   reportCreateValidators,
   subzoneCreateOrUpdateValidators,
+  zoneEventCreateValidators,
   zoneCreateValidators,
   zoneUpdateValidators,
 } from './validators.js';
@@ -35,6 +37,25 @@ router.get(
   idParam('zoneId'),
   handleValidation,
   subzonesController.getSubzonesByZoneId
+);
+router.get(
+  '/:zoneId/events',
+  idParam('zoneId'),
+  handleValidation,
+  zoneEventsController.getZoneEvents
+);
+router.post(
+  '/:zoneId/events',
+  zoneEventCreateValidators,
+  handleValidation,
+  zoneEventsController.createZoneEvent
+);
+router.delete(
+  '/:zoneId/events/:eventId',
+  idParam('zoneId'),
+  idParam('eventId'),
+  handleValidation,
+  zoneEventsController.deleteZoneEvent
 );
 router.post(
   '/:zoneId/subzones',

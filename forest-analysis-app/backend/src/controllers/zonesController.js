@@ -11,6 +11,11 @@ function currentUserId(req) {
   return req.user?.id || 1;
 }
 
+function normalizeColor(value) {
+  const color = String(value || '#116b3b').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#116b3b';
+}
+
 export function formatZone(row) {
   if (!row) return null;
 
@@ -43,6 +48,7 @@ export async function createZone(req, res, next) {
       String(name).trim(),
       description || null,
       region || null,
+      normalizeColor(req.body.color),
       JSON.stringify(normalizedGeometry),
       areaM2,
       areaHa,
@@ -101,6 +107,7 @@ export async function updateZone(req, res, next) {
       String(name).trim(),
       description || null,
       region || null,
+      normalizeColor(req.body.color),
     ]);
 
     if (result.rows.length === 0) {

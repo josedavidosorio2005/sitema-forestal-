@@ -4,10 +4,15 @@
 **Fecha:** 15 de Mayo de 2026
 
 - Agregado motor de calculo de extraccion de troncos con `peso_tronco`, `angulo_pendiente`, `tipo_suelo` y `distancia_arrastre`.
-- Nueva salida JSON tecnica con tension estatica, tension con factor 5:1, MBS recomendado, friccion usada, alertas y material sugerido.
+- La API mantiene salida tecnica estructurada, pero la pantalla muestra resultados profesionales sin bloque JSON visible.
 - Nuevo endpoint `POST /api/calculations/log-drag-tension`.
 - Nueva pantalla `Extraccion` en web, PC/Electron y Android/Capacitor.
-- Agregado buscador de lugares en el mapa por direccion, finca, vereda o coordenadas pegadas.
+- Agregado buscador de lugares en el mapa por direccion, finca, vereda o coordenadas pegadas, con panel plegable/minimizable.
+- Agregado color configurable por zona y renderizado en el mapa.
+- Agregadas categorias de especies en catalogo, reportes y almacenamiento local.
+- Agregado historial de zona para trazabilidad de arboles, terreno, arrastre, transporte, cosecha, incidentes e inspecciones.
+- Replicado en web, `vercionde pc` y `lamda vercion de andid`.
+- Migracion backend actualizada para bases nuevas y existentes, con usuario local base automatico.
 
 ## Versión 1.0.0 - Primera Versión Completa
 **Fecha:** 12 de Mayo de 2024  
