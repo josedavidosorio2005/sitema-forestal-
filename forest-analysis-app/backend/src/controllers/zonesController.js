@@ -16,6 +16,24 @@ function normalizeColor(value) {
   return /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#116b3b';
 }
 
+export const VALID_ZONE_STATUSES = [
+  'planeacion',
+  'listo_siembra',
+  'en_siembra',
+  'mantenimiento',
+  'alerta_plaga',
+  'alerta_operativa',
+  'listo_cosecha',
+  'cosechado',
+  'descanso',
+  'conservacion',
+];
+
+export function normalizeZoneStatus(value) {
+  const status = String(value || 'planeacion').trim().toLowerCase();
+  return VALID_ZONE_STATUSES.includes(status) ? status : 'planeacion';
+}
+
 export function formatZone(row) {
   if (!row) return null;
 
@@ -49,6 +67,7 @@ export async function createZone(req, res, next) {
       description || null,
       region || null,
       normalizeColor(req.body.color),
+      normalizeZoneStatus(req.body.status),
       JSON.stringify(normalizedGeometry),
       areaM2,
       areaHa,
@@ -108,6 +127,7 @@ export async function updateZone(req, res, next) {
       description || null,
       region || null,
       normalizeColor(req.body.color),
+      normalizeZoneStatus(req.body.status),
     ]);
 
     if (result.rows.length === 0) {

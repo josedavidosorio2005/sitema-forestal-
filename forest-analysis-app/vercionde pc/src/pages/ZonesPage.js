@@ -11,7 +11,15 @@ import {
   zoneEventsService,
   zonesService,
 } from '../services/api';
-import { formatDate, formatNumber, getErrorMessage } from '../utils/helpers';
+import {
+  TRACE_SEVERITIES,
+  ZONE_STATUSES,
+  formatDate,
+  formatNumber,
+  getErrorMessage,
+  getZoneStatusLabel,
+  getZoneStatusTone,
+} from '../utils/helpers';
 import './ZonesPage.css';
 
 const EVENT_TYPES = [
@@ -22,9 +30,42 @@ const EVENT_TYPES = [
   { value: 'arrastre', label: 'Arrastre' },
   { value: 'transporte', label: 'Transporte' },
   { value: 'inspeccion', label: 'Inspeccion' },
+  { value: 'plaga', label: 'Plaga' },
+  { value: 'problema_sanitario', label: 'Problema sanitario' },
+  { value: 'control_plaga', label: 'Control de plaga' },
+  { value: 'evaluacion', label: 'Evaluacion' },
+  { value: 'cambio_estado', label: 'Cambio de estado' },
   { value: 'incidente', label: 'Incidente' },
   { value: 'otro', label: 'Otro' },
 ];
+
+function buildTraceSummary(zone, events = []) {
+  const activeEvents = Array.isArray(events) ? events : [];
+  const issueEvents = activeEvents.filter((item) =>
+    ['plaga', 'problema_sanitario', 'incidente'].includes(item.event_type) ||
+    ['alto', 'critico'].includes(item.severity)
+  );
+  const lastEvent = activeEvents[0] || null;
+  const currentStatus = zone?.status || 'planeacion';
+
+  return {
+    statusLabel: getZoneStatusLabel(currentStatus),
+    statusTone: getZoneStatusTone(currentStatus),
+    totalEvents: activeEvents.length,
+    issueEvents: issueEvents.length,
+    lastEvent,
+    recommendation:
+      currentStatus === 'alerta_plaga'
+        ? 'Prioridad alta: registrar control de plaga y detener cosecha hasta nueva inspeccion.'
+        : currentStatus === 'listo_cosecha'
+          ? 'Zona lista para programar cosecha, cuadrilla y ruta de extraccion.'
+          : currentStatus === 'listo_siembra'
+            ? 'Zona lista para siembra; valida especies, subzonas y pendiente antes de operar.'
+            : currentStatus === 'mantenimiento'
+              ? 'Mantener seguimiento: registra labores, responsables y proxima revision.'
+              : 'Mantener trazabilidad con inspecciones periodicas y evidencias de campo.',
+  };
+}
 
 function ZonesPage() {
   const [zones, setZones] = useState([]);
@@ -35,6 +76,8 @@ function ZonesPage() {
   const [zoneEvents, setZoneEvents] = useState([]);
   const [eventForm, setEventForm] = useState({
     event_type: 'inspeccion',
+    severity: 'informativo',
+    zone_status_after: '',
     title: '',
     description: '',
     actor: '',
@@ -223,11 +266,21 @@ function ZonesPage() {
         title,
         description: eventForm.description.trim(),
         actor: eventForm.actor.trim(),
+        zone_status_after: eventForm.zone_status_after || undefined,
         event_date: new Date().toISOString(),
       });
-      setZoneEvents((current) => [response.data.data, ...current]);
+      const createdEvent = response.data.data;
+      setZoneEvents((current) => [createdEvent, ...current]);
+      if (createdEvent.zone) {
+        setSelectedZone((current) => ({ ...current, ...createdEvent.zone }));
+        setZones((current) =>
+          current.map((zone) => (zone.id === createdEvent.zone.id ? { ...zone, ...createdEvent.zone } : zone))
+        );
+      }
       setEventForm({
         event_type: 'inspeccion',
+        severity: 'informativo',
+        zone_status_after: '',
         title: '',
         description: '',
         actor: '',
@@ -291,6 +344,8 @@ function ZonesPage() {
     }
   }
 
+  const traceSummary = selectedZone ? buildTraceSummary(selectedZone, zoneEvents) : null;
+
   return (
     <div className="management-layout">
       <main className="management-main">
@@ -323,6 +378,9 @@ function ZonesPage() {
                   </h2>
                   <span>{formatDate(zone.created_at)}</span>
                 </div>
+                <span className={`zone-status zone-status-${getZoneStatusTone(zone.status)}`}>
+                  {getZoneStatusLabel(zone.status)}
+                </span>
                 <p>{zone.description || 'Sin descripcion'}</p>
                 <div className="zone-card-metrics">
                   <strong>{formatNumber(zone.area_m2)} m2</strong>
@@ -409,6 +467,40 @@ function ZonesPage() {
               </section>
             )}
             <ReportPanel report={selectedReport} zone={selectedZone} />
+            {selectedZone && traceSummary && (
+              <section className="sidebar-section">
+                <div className="section-header-row">
+                  <h3 className="sidebar-section-title">Reporte de estado</h3>
+                  <button type="button" className="btn btn-small btn-secondary" onClick={() => window.print()}>
+                    Imprimir
+                  </button>
+                </div>
+                <div className="zone-status-report">
+                  <span className={`zone-status zone-status-${traceSummary.statusTone}`}>
+                    {traceSummary.statusLabel}
+                  </span>
+                  <div className="trace-report-grid">
+                    <div>
+                      <span>Eventos</span>
+                      <strong>{traceSummary.totalEvents}</strong>
+                    </div>
+                    <div>
+                      <span>Alertas</span>
+                      <strong>{traceSummary.issueEvents}</strong>
+                    </div>
+                  </div>
+                  {traceSummary.lastEvent && (
+                    <p>
+                      Ultimo evento: {traceSummary.lastEvent.title} - {formatDate(traceSummary.lastEvent.event_date || traceSummary.lastEvent.created_at)}
+                    </p>
+                  )}
+                  <p>{traceSummary.recommendation}</p>
+                  <button className="btn btn-primary btn-block" onClick={() => generateReport(selectedZone)} disabled={loading}>
+                    Generar reporte tecnico de zona
+                  </button>
+                </div>
+              </section>
+            )}
             {selectedZone && (
               <section className="sidebar-section">
                 <div className="section-header-row">
@@ -456,6 +548,35 @@ function ZonesPage() {
                       disabled={loading}
                     />
                   </div>
+                  <div className="trace-form-row">
+                    <select
+                      value={eventForm.severity}
+                      onChange={(event) =>
+                        setEventForm((current) => ({ ...current, severity: event.target.value }))
+                      }
+                      disabled={loading}
+                    >
+                      {TRACE_SEVERITIES.map((severity) => (
+                        <option key={severity.value} value={severity.value}>
+                          Severidad: {severity.label}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={eventForm.zone_status_after}
+                      onChange={(event) =>
+                        setEventForm((current) => ({ ...current, zone_status_after: event.target.value }))
+                      }
+                      disabled={loading}
+                    >
+                      <option value="">No cambiar estado</option>
+                      {ZONE_STATUSES.map((status) => (
+                        <option key={status.value} value={status.value}>
+                          Dejar como: {status.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <input
                     value={eventForm.title}
                     placeholder="Que paso con los arboles o el terreno"
@@ -485,8 +606,12 @@ function ZonesPage() {
                       <article key={item.id} className="trace-item">
                         <div>
                           <span>{item.event_type}</span>
+                          {item.severity && <span className={`trace-severity trace-severity-${item.severity}`}>{item.severity}</span>}
                           <strong>{item.title}</strong>
                           <small>{formatDate(item.event_date || item.created_at)}{item.actor ? ` / ${item.actor}` : ''}</small>
+                          {item.zone_status_after && (
+                            <small>Estado resultante: {getZoneStatusLabel(item.zone_status_after)}</small>
+                          )}
                         </div>
                         {item.description && <p>{item.description}</p>}
                         <button

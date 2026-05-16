@@ -115,6 +115,53 @@ export function getForestDensityColor(density) {
   return colors[density] || '#64748b';
 }
 
+export const ZONE_STATUSES = [
+  { value: 'planeacion', label: 'Planeacion', tone: 'neutral' },
+  { value: 'listo_siembra', label: 'Listo para sembrar', tone: 'info' },
+  { value: 'en_siembra', label: 'En siembra', tone: 'info' },
+  { value: 'mantenimiento', label: 'Mantenimiento', tone: 'warning' },
+  { value: 'alerta_plaga', label: 'Alerta por plaga', tone: 'danger' },
+  { value: 'alerta_operativa', label: 'Problema operativo', tone: 'danger' },
+  { value: 'listo_cosecha', label: 'Listo para cosechar', tone: 'success' },
+  { value: 'cosechado', label: 'Cosechado', tone: 'neutral' },
+  { value: 'descanso', label: 'En descanso', tone: 'neutral' },
+  { value: 'conservacion', label: 'Conservacion', tone: 'success' },
+];
+
+export const TRACE_SEVERITIES = [
+  { value: 'informativo', label: 'Informativo' },
+  { value: 'bajo', label: 'Bajo' },
+  { value: 'medio', label: 'Medio' },
+  { value: 'alto', label: 'Alto' },
+  { value: 'critico', label: 'Critico' },
+];
+
+export const DEFAULT_SPECIES_CATEGORIES = [
+  { value: 'maderable', label: 'Maderable' },
+  { value: 'frutal', label: 'Frutal' },
+  { value: 'restauracion', label: 'Restauracion' },
+  { value: 'proteccion', label: 'Proteccion de suelo' },
+  { value: 'ornamental', label: 'Ornamental' },
+  { value: 'medicinal', label: 'Medicinal' },
+  { value: 'otro', label: 'Otro' },
+];
+
+export function normalizeCategory(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_/-]/g, '');
+}
+
+export function getZoneStatusLabel(status) {
+  return ZONE_STATUSES.find((item) => item.value === status)?.label || status || 'Sin estado';
+}
+
+export function getZoneStatusTone(status) {
+  return ZONE_STATUSES.find((item) => item.value === status)?.tone || 'neutral';
+}
+
 export function getSpeciesTypeLabel(type) {
   const labels = {
     nativa: 'Nativa',
@@ -132,17 +179,8 @@ export function getSpeciesTypeClass(type) {
 }
 
 export function getSpeciesCategoryLabel(category) {
-  const labels = {
-    maderable: 'Maderable',
-    frutal: 'Frutal',
-    restauracion: 'Restauracion',
-    proteccion: 'Proteccion de suelo',
-    ornamental: 'Ornamental',
-    medicinal: 'Medicinal',
-    otro: 'Otro',
-  };
-
-  return labels[category] || category || 'Sin categoria';
+  const defaultLabel = DEFAULT_SPECIES_CATEGORIES.find((item) => item.value === category)?.label;
+  return defaultLabel || String(category || 'Sin categoria').replace(/[_-]/g, ' ');
 }
 
 export function getSubzoneUseLabel(useType) {

@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS zones (
   description TEXT,
   region VARCHAR(255),
   color VARCHAR(20) DEFAULT '#116b3b',
+  status VARCHAR(80) DEFAULT 'planeacion',
   geometry_geojson JSONB NOT NULL,
   area_m2 DOUBLE PRECISION NOT NULL,
   area_ha DOUBLE PRECISION NOT NULL,
@@ -82,6 +83,8 @@ CREATE TABLE IF NOT EXISTS zone_events (
   title VARCHAR(255) NOT NULL,
   description TEXT,
   actor VARCHAR(255),
+  severity VARCHAR(40) DEFAULT 'informativo',
+  zone_status_after VARCHAR(80),
   event_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -139,6 +142,7 @@ CREATE TABLE IF NOT EXISTS zones (
   description TEXT,
   region TEXT,
   color TEXT DEFAULT '#116b3b',
+  status TEXT DEFAULT 'planeacion',
   geometry_geojson TEXT NOT NULL,
   area_m2 REAL NOT NULL,
   area_ha REAL NOT NULL,
@@ -205,6 +209,8 @@ CREATE TABLE IF NOT EXISTS zone_events (
   title TEXT NOT NULL,
   description TEXT,
   actor TEXT,
+  severity TEXT DEFAULT 'informativo',
+  zone_status_after TEXT,
   event_date TEXT DEFAULT CURRENT_TIMESTAMP,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -225,8 +231,8 @@ CREATE INDEX IF NOT EXISTS idx_zone_events_event_date ON zone_events(event_date)
 
 export const zonesQueries = {
   create: `
-    INSERT INTO zones (user_id, name, description, region, color, geometry_geojson, area_m2, area_ha)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    INSERT INTO zones (user_id, name, description, region, color, status, geometry_geojson, area_m2, area_ha)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING *;
   `,
   getAll: `
@@ -244,6 +250,7 @@ export const zonesQueries = {
         description = $3,
         region = $4,
         color = $5,
+        status = $6,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = $1 AND deleted_at IS NULL
     RETURNING *;
@@ -251,6 +258,13 @@ export const zonesQueries = {
   softDelete: `
     UPDATE zones
     SET deleted_at = CURRENT_TIMESTAMP
+    WHERE id = $1 AND deleted_at IS NULL
+    RETURNING *;
+  `,
+  updateStatus: `
+    UPDATE zones
+    SET status = $2,
+        updated_at = CURRENT_TIMESTAMP
     WHERE id = $1 AND deleted_at IS NULL
     RETURNING *;
   `,
@@ -306,9 +320,11 @@ export const zoneEventsQueries = {
       title,
       description,
       actor,
+      severity,
+      zone_status_after,
       event_date
     )
-    VALUES ($1, $2, $3, $4, $5, $6)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING *;
   `,
   getByZoneId: `

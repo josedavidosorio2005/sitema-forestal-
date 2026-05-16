@@ -22,6 +22,7 @@ import {
   getSubzoneTreeColor,
   getSubzoneTreeName,
   getSubzoneUseLabel,
+  getZoneStatusLabel,
 } from '../utils/helpers';
 import './MapComponent.css';
 
@@ -294,6 +295,12 @@ function SavedZonesLayer({ zones, selectedZone, drawMode, onSelectZone }) {
                   : 0.2,
               weight: active ? 4 : 2,
             };
+          }}
+          onEachFeature={(feature, layer) => {
+            layer.bindTooltip(
+              `${zone.name} | ${getZoneStatusLabel(zone.status)} | ${formatNumber(zone.area_ha)} ha`,
+              { sticky: true }
+            );
           }}
         />
       ))}

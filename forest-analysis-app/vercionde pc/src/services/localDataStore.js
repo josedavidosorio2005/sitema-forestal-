@@ -7,7 +7,35 @@ const DB_KEY = 'forest-analysis-mobile-db-v1';
 const VALID_SPECIES_TYPES = ['nativa', 'introducida', 'invasora', 'ornamental', 'comercial'];
 const VALID_USE_TYPES = ['plantacion', 'recoleccion', 'conservacion', 'mixto'];
 const VALID_OPERATION_TYPES = ['sembrar', 'recolectar', 'monitorear'];
-const VALID_EVENT_TYPES = ['preparacion', 'siembra', 'mantenimiento', 'cosecha', 'arrastre', 'transporte', 'inspeccion', 'incidente', 'otro'];
+const VALID_EVENT_TYPES = [
+  'preparacion',
+  'siembra',
+  'mantenimiento',
+  'cosecha',
+  'arrastre',
+  'transporte',
+  'inspeccion',
+  'plaga',
+  'problema_sanitario',
+  'control_plaga',
+  'evaluacion',
+  'cambio_estado',
+  'incidente',
+  'otro',
+];
+const VALID_ZONE_STATUSES = [
+  'planeacion',
+  'listo_siembra',
+  'en_siembra',
+  'mantenimiento',
+  'alerta_plaga',
+  'alerta_operativa',
+  'listo_cosecha',
+  'cosechado',
+  'descanso',
+  'conservacion',
+];
+const VALID_TRACE_SEVERITIES = ['informativo', 'bajo', 'medio', 'alto', 'critico'];
 
 const seedSpecies = [
   {
@@ -130,6 +158,11 @@ function fail(message, status = 400) {
 
 function activeItems(items) {
   return items.filter((item) => !item.deleted_at);
+}
+
+function normalizeZoneStatus(value) {
+  const status = String(value || 'planeacion').trim().toLowerCase();
+  return VALID_ZONE_STATUSES.includes(status) ? status : 'planeacion';
 }
 
 function findZone(db, id) {
@@ -271,6 +304,7 @@ export const localDataStore = {
         description: payload.description || null,
         region: payload.region || null,
         color: payload.color || '#116b3b',
+        status: normalizeZoneStatus(payload.status),
         geometry,
         area_m2: area.areaM2,
         area_ha: area.areaHa,
@@ -307,6 +341,7 @@ export const localDataStore = {
         description: payload.description || null,
         region: payload.region || null,
         color: payload.color || '#116b3b',
+        status: normalizeZoneStatus(payload.status),
         updated_at: now(),
       });
       saveDb(db);
@@ -344,8 +379,11 @@ export const localDataStore = {
       const zone = findZone(db, zoneId);
       const title = String(payload.title || '').trim();
       const eventType = payload.event_type || 'otro';
+      const severity = payload.severity || 'informativo';
+      const statusAfter = payload.zone_status_after ? normalizeZoneStatus(payload.zone_status_after) : null;
 
       if (!VALID_EVENT_TYPES.includes(eventType)) fail('Tipo de evento invalido.', 400);
+      if (!VALID_TRACE_SEVERITIES.includes(severity)) fail('Severidad invalida.', 400);
       if (!title) fail('El titulo del evento es requerido.', 400);
 
       const timestamp = now();
@@ -357,6 +395,8 @@ export const localDataStore = {
         title,
         description: payload.description || null,
         actor: payload.actor || null,
+        severity,
+        zone_status_after: statusAfter,
         event_date: payload.event_date || timestamp,
         created_at: timestamp,
         updated_at: timestamp,
@@ -364,6 +404,11 @@ export const localDataStore = {
       };
 
       db.zoneEvents.unshift(event);
+      if (statusAfter) {
+        zone.status = statusAfter;
+        zone.updated_at = timestamp;
+        event.zone = { ...zone };
+      }
       saveDb(db);
       return ok(event, 'Evento guardado en el dispositivo.');
     },

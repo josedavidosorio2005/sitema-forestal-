@@ -5,7 +5,35 @@ const SPECIES_TYPES = ['nativa', 'introducida', 'invasora', 'ornamental', 'comer
 const SUBZONE_USE_TYPES = ['plantacion', 'recoleccion', 'conservacion', 'mixto'];
 const SUBZONE_OPERATION_TYPES = ['sembrar', 'recolectar', 'monitorear'];
 const LOG_DRAG_SOILS = ['pasto', 'tierra_seca', 'tierra', 'lodo', 'grava'];
-const ZONE_EVENT_TYPES = ['preparacion', 'siembra', 'mantenimiento', 'cosecha', 'arrastre', 'transporte', 'inspeccion', 'incidente', 'otro'];
+const ZONE_EVENT_TYPES = [
+  'preparacion',
+  'siembra',
+  'mantenimiento',
+  'cosecha',
+  'arrastre',
+  'transporte',
+  'inspeccion',
+  'plaga',
+  'problema_sanitario',
+  'control_plaga',
+  'evaluacion',
+  'cambio_estado',
+  'incidente',
+  'otro',
+];
+const ZONE_STATUSES = [
+  'planeacion',
+  'listo_siembra',
+  'en_siembra',
+  'mantenimiento',
+  'alerta_plaga',
+  'alerta_operativa',
+  'listo_cosecha',
+  'cosechado',
+  'descanso',
+  'conservacion',
+];
+const TRACE_SEVERITIES = ['informativo', 'bajo', 'medio', 'alto', 'critico'];
 
 function optionalText(field, max = 1000) {
   return body(field)
@@ -39,6 +67,10 @@ export const zoneCreateValidators = [
     .optional({ nullable: true, checkFalsy: true })
     .matches(/^#[0-9a-fA-F]{6}$/)
     .withMessage('color debe ser hexadecimal, ejemplo #116b3b.'),
+  body('status')
+    .optional({ nullable: true, checkFalsy: true })
+    .isIn(ZONE_STATUSES)
+    .withMessage(`Estado de zona invalido. Usa uno de: ${ZONE_STATUSES.join(', ')}.`),
   body('geometry').custom((geometry) => {
     normalizePolygonGeometry(geometry);
     return true;
@@ -61,6 +93,10 @@ export const zoneUpdateValidators = [
     .optional({ nullable: true, checkFalsy: true })
     .matches(/^#[0-9a-fA-F]{6}$/)
     .withMessage('color debe ser hexadecimal, ejemplo #116b3b.'),
+  body('status')
+    .optional({ nullable: true, checkFalsy: true })
+    .isIn(ZONE_STATUSES)
+    .withMessage(`Estado de zona invalido. Usa uno de: ${ZONE_STATUSES.join(', ')}.`),
 ];
 
 export const speciesCreateOrUpdateValidators = [
@@ -248,6 +284,14 @@ export const zoneEventCreateValidators = [
     .withMessage('El titulo no puede superar 255 caracteres.'),
   optionalText('description', 2000),
   optionalText('actor', 255),
+  body('severity')
+    .optional({ nullable: true, checkFalsy: true })
+    .isIn(TRACE_SEVERITIES)
+    .withMessage(`Severidad invalida. Usa una de: ${TRACE_SEVERITIES.join(', ')}.`),
+  body('zone_status_after')
+    .optional({ nullable: true, checkFalsy: true })
+    .isIn(ZONE_STATUSES)
+    .withMessage(`Estado resultante invalido. Usa uno de: ${ZONE_STATUSES.join(', ')}.`),
   body('event_date')
     .optional({ nullable: true, checkFalsy: true })
     .isISO8601()

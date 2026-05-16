@@ -82,6 +82,10 @@ function SpeciesPage() {
     );
   }, [species]);
 
+  const categoryOptions = useMemo(() => {
+    return Array.from(new Set(species.map((item) => item.category).filter(Boolean)));
+  }, [species]);
+
   return (
     <div className="management-layout">
       <main className="management-main">
@@ -205,6 +209,7 @@ function SpeciesPage() {
               setEditingSpecies(null);
             }}
             loading={loading}
+            categoryOptions={categoryOptions}
           />
         ) : (
           <section className="sidebar-section">

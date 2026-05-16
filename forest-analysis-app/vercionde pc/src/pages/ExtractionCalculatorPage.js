@@ -15,6 +15,51 @@ function formatKn(value) {
   return formatNumber(value, 2);
 }
 
+function getSafetyProfile(factor) {
+  const value = Number(factor || 0);
+  if (value >= 5) {
+    return {
+      label: 'Operacion dentro del minimo 5:1',
+      tone: 'success',
+      explanation: 'La cuerda recomendada resiste al menos cinco veces la tension estatica calculada.',
+    };
+  }
+  if (value >= 3) {
+    return {
+      label: 'Margen limitado',
+      tone: 'warning',
+      explanation: 'Puede funcionar solo con control estricto; para campo forestal se recomienda subir a 5:1.',
+    };
+  }
+  return {
+    label: 'Margen insuficiente',
+    tone: 'danger',
+    explanation: 'El factor es bajo para arrastre. Aumenta resistencia de cuerda, reduce carga o cambia el metodo.',
+  };
+}
+
+function buildChartRows(result) {
+  if (!result) return [];
+  const staticKn = result.json.tension_estatica_kN;
+  const safeKn = result.json.tension_con_seguridad_kN;
+  const max = Math.max(safeKn, staticKn, 1);
+
+  return [
+    {
+      label: 'Tension para iniciar movimiento',
+      value: staticKn,
+      width: Math.max(8, (staticKn / max) * 100),
+      tone: 'base',
+    },
+    {
+      label: 'Resistencia minima con seguridad',
+      value: safeKn,
+      width: Math.max(8, (safeKn / max) * 100),
+      tone: 'safe',
+    },
+  ];
+}
+
 function ExtractionCalculatorPage() {
   const [form, setForm] = useState(initialForm);
 
@@ -22,6 +67,8 @@ function ExtractionCalculatorPage() {
   const result = useMemo(() => {
     return calculateLogDragTension(form);
   }, [form]);
+  const safetyProfile = getSafetyProfile(form.factor_seguridad);
+  const chartRows = buildChartRows(result);
 
   function updateField(field, value) {
     setForm((current) => ({
@@ -119,6 +166,52 @@ function ExtractionCalculatorPage() {
               <div className="result-hero">
                 <span>Resistencia minima de cuerda</span>
                 <strong>{formatKn(result.json.tension_con_seguridad_kN)} kN</strong>
+              </div>
+
+              <div className={`safety-graph safety-graph-${safetyProfile.tone}`}>
+                <div className="safety-graph-header">
+                  <div>
+                    <span>Grado de seguridad</span>
+                    <strong>Factor {formatNumber(result.technical.factor_seguridad, 1)}:1</strong>
+                  </div>
+                  <em>{safetyProfile.label}</em>
+                </div>
+                <div className="safety-meter" aria-label="Indicador de factor de seguridad">
+                  <span style={{ width: `${Math.min(100, Math.max(8, (Number(form.factor_seguridad) / 5) * 100))}%` }} />
+                </div>
+                <p>{safetyProfile.explanation}</p>
+              </div>
+
+              <div className="tension-chart">
+                <div className="chart-title">
+                  <strong>Grafica de tension</strong>
+                  <span>Compara la carga real contra la cuerda minima recomendada.</span>
+                </div>
+                {chartRows.map((row) => (
+                  <div className="chart-row" key={row.label}>
+                    <div className="chart-row-label">
+                      <span>{row.label}</span>
+                      <strong>{formatKn(row.value)} kN</strong>
+                    </div>
+                    <div className="chart-track">
+                      <span className={`chart-fill chart-fill-${row.tone}`} style={{ width: `${row.width}%` }} />
+                    </div>
+                  </div>
+                ))}
+                <div className="component-grid">
+                  <div>
+                    <span>Pendiente</span>
+                    <strong>{formatNumber(result.technical.slopeComponentN, 0)} N</strong>
+                  </div>
+                  <div>
+                    <span>Friccion</span>
+                    <strong>{formatNumber(result.technical.frictionForceN, 0)} N</strong>
+                  </div>
+                  <div>
+                    <span>Reserva aplicada</span>
+                    <strong>{formatNumber(result.technical.factor_seguridad, 1)}x</strong>
+                  </div>
+                </div>
               </div>
 
               <div className="result-metrics">

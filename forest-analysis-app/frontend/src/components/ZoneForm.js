@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ZONE_STATUSES } from '../utils/helpers';
 import './ZoneForm.css';
 
 const ZONE_COLORS = ['#116b3b', '#2563eb', '#f59e0b', '#dc2626', '#7c3aed', '#0f766e'];
@@ -16,6 +17,7 @@ function ZoneForm({
     description: initialData.description || '',
     region: initialData.region || '',
     color: initialData.color || '#116b3b',
+    status: initialData.status || 'planeacion',
     confirmed_species_ids: initialData.confirmed_species_ids || [],
   });
   const [errors, setErrors] = useState({});
@@ -56,6 +58,7 @@ function ZoneForm({
       description: formData.description.trim(),
       region: formData.region.trim(),
       color: formData.color,
+      status: formData.status,
     });
   }
 
@@ -94,6 +97,20 @@ function ZoneForm({
           disabled={loading}
           rows="4"
         />
+      </label>
+
+      <label className="field">
+        <span>Estado operativo</span>
+        <select name="status" value={formData.status} onChange={handleChange} disabled={loading}>
+          {ZONE_STATUSES.map((status) => (
+            <option key={status.value} value={status.value}>
+              {status.label}
+            </option>
+          ))}
+        </select>
+        <small className="field-hint">
+          Marca si la zona esta lista para sembrar, en alerta, en mantenimiento o lista para cosechar.
+        </small>
       </label>
 
       <label className="field">
