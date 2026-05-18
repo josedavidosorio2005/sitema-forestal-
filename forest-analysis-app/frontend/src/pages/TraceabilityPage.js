@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
+import TreeLocationMap from '../components/TreeLocationMap';
 import { zonesService, subzonesService, treesService, speciesService } from '../services/api';
 import { getErrorMessage, formatNumber, formatDate } from '../utils/helpers';
 import './TraceabilityPage.css';
@@ -23,6 +24,9 @@ function TraceabilityPage() {
   const [filterStatus, setFilterStatus] = useState('Todos');
   const [treeQueue, setTreeQueue] = useState([]);
   const [savingBatch, setSavingBatch] = useState(false);
+  const [placedCoords, setPlacedCoords] = useState(null);
+  const [zoneGeometry, setZoneGeometry] = useState(null);
+  const [subzoneGeometry, setSubzoneGeometry] = useState(null);
   
   const [treeFormData, setTreeFormData] = useState({
     qr_tag: '',
@@ -78,11 +82,18 @@ function TraceabilityPage() {
     setSelectedTree(null);
     setShowTreeForm(false);
     setFilterStatus('Todos');
+    setPlacedCoords(null);
+    setSubzoneGeometry(null);
 
     if (!zoneId) {
       setSubzones([]);
+      setZoneGeometry(null);
       return;
     }
+
+    // Track zone geometry for the map
+    const zone = zones.find(z => z.id === Number(zoneId));
+    setZoneGeometry(zone?.geometry || null);
 
     try {
       setLoading(true);
@@ -101,6 +112,11 @@ function TraceabilityPage() {
     setSelectedTree(null);
     setShowTreeForm(false);
     setFilterStatus('Todos');
+    setPlacedCoords(null);
+
+    // Track subzone geometry for the map
+    const sz = subzones.find(s => s.id === Number(subzoneId));
+    setSubzoneGeometry(sz?.geometry || null);
 
     if (!subzoneId) {
       setTrees([]);
@@ -142,6 +158,11 @@ function TraceabilityPage() {
     e.preventDefault();
     if (!selectedSubzone) return;
 
+    if (!placedCoords) {
+      setMessage({ type: 'error', text: 'Primero ubica el árbol en el mapa (haz clic o usa GPS).' });
+      return;
+    }
+
     const payload = {
       subzone_id: selectedSubzone,
       qr_tag: treeFormData.qr_tag,
@@ -151,7 +172,7 @@ function TraceabilityPage() {
       estimated_volume: parseFloat(treeFormData.estimated_volume),
       legal_permit: treeFormData.legal_permit,
       health_condition: treeFormData.health_condition,
-      geometry: { type: 'Point', coordinates: [-74.0, 4.0] },
+      geometry: { type: 'Point', coordinates: placedCoords },
       _speciesLabel: species.find(s => String(s.id) === String(treeFormData.species_id))?.common_name || 'Sin especie'
     };
 
@@ -161,8 +182,9 @@ function TraceabilityPage() {
     }
 
     setTreeQueue(prev => [...prev, payload]);
+    setPlacedCoords(null);
     setTreeFormData({ qr_tag: '', species_id: treeFormData.species_id, dap: '', commercial_height: '', estimated_volume: '', legal_permit: treeFormData.legal_permit, health_condition: treeFormData.health_condition });
-    setMessage({ type: 'success', text: `Árbol "${payload.qr_tag}" añadido a la cola (${treeQueue.length + 1} pendientes). Puedes seguir agregando.` });
+    setMessage({ type: 'success', text: `Árbol "${payload.qr_tag}" añadido a la cola (${treeQueue.length + 1} pendientes). Ubica el siguiente en el mapa.` });
   }
 
   function removeFromQueue(index) {
@@ -238,6 +260,21 @@ function TraceabilityPage() {
         </div>
 
         {message && <div className={`alert alert-${message.type}`}>{message.text}</div>}
+
+        {/* Mapa de ubicación de árboles */}
+        {selectedZone && (
+          <TreeLocationMap
+            zoneGeometry={zoneGeometry}
+            subzoneGeometry={subzoneGeometry}
+            trees={trees}
+            selectedTree={selectedTree}
+            placingMode={showTreeForm}
+            placedCoords={placedCoords}
+            onLocationSelect={setPlacedCoords}
+            onSelectTree={selectTree}
+            style={{ height: '340px', marginBottom: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}
+          />
+        )}
 
         <div className="traceability-controls card">
           <div className="form-group">

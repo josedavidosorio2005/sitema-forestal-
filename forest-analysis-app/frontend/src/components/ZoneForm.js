@@ -7,7 +7,7 @@ function ZoneForm({
   onCancel,
   loading = false,
   speciesOptions = [],
-  showConfirmedSpecies = false,
+  // showConfirmedSpecies is kept for backward compatibility but species selector always shows now
 }) {
   const [formData, setFormData] = useState({
     name: initialData.name || '',
@@ -24,11 +24,18 @@ function ZoneForm({
     setErrors((current) => ({ ...current, [name]: '' }));
   }
 
-  function handleConfirmedChange(event) {
-    const selected = Array.from(event.target.selectedOptions).map((option) =>
-      Number(option.value)
-    );
-    setFormData((current) => ({ ...current, confirmed_species_ids: selected }));
+  function toggleSpecies(speciesId) {
+    setFormData((current) => {
+      const ids = current.confirmed_species_ids;
+      const next = ids.includes(speciesId)
+        ? ids.filter((id) => id !== speciesId)
+        : [...ids, speciesId];
+      return { ...current, confirmed_species_ids: next };
+    });
+  }
+
+  function clearSpecies() {
+    setFormData((current) => ({ ...current, confirmed_species_ids: [] }));
   }
 
   function validate() {
@@ -42,12 +49,10 @@ function ZoneForm({
   function handleSubmit(event) {
     event.preventDefault();
     const nextErrors = validate();
-
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
     }
-
     onSubmit({
       ...formData,
       name: formData.name.trim(),
@@ -56,8 +61,11 @@ function ZoneForm({
     });
   }
 
+  const noneSelected = formData.confirmed_species_ids.length === 0;
+
   return (
     <form className="form-stack" onSubmit={handleSubmit}>
+      {/* Nombre */}
       <label className="field">
         <span>Nombre de la zona *</span>
         <input
@@ -70,6 +78,7 @@ function ZoneForm({
         {errors.name && <small className="field-error">{errors.name}</small>}
       </label>
 
+      {/* Region + Color */}
       <div style={{ display: 'flex', gap: '12px' }}>
         <label className="field" style={{ flex: 1 }}>
           <span>Region o ubicacion</span>
@@ -81,7 +90,7 @@ function ZoneForm({
             disabled={loading}
           />
         </label>
-        
+
         <label className="field" style={{ width: '80px' }}>
           <span>Color</span>
           <input
@@ -95,6 +104,7 @@ function ZoneForm({
         </label>
       </div>
 
+      {/* Descripcion */}
       <label className="field">
         <span>Descripcion</span>
         <textarea
@@ -107,28 +117,79 @@ function ZoneForm({
         />
       </label>
 
-      {showConfirmedSpecies && (
-        <label className="field">
-          <span>Especies confirmadas manualmente</span>
-          <select
-            multiple
-            value={formData.confirmed_species_ids.map(String)}
-            onChange={handleConfirmedChange}
-            disabled={loading || speciesOptions.length === 0}
-            size={Math.min(6, Math.max(3, speciesOptions.length || 3))}
+      {/* Especies - siempre visible, con checkboxes y opcion Ninguna */}
+      <div className="field">
+        <span>Especies nativas confirmadas</span>
+        <div
+          style={{
+            maxHeight: '180px',
+            overflowY: 'auto',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            padding: '8px 10px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            background: '#fafafa',
+            marginTop: '4px',
+          }}
+        >
+          {/* Opcion Ninguna */}
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              fontStyle: 'italic',
+              color: '#6b7280',
+              paddingBottom: '4px',
+              borderBottom: '1px dashed #e5e7eb',
+            }}
           >
-            {speciesOptions.map((species) => (
-              <option key={species.id} value={species.id}>
-                {species.common_name} - {species.scientific_name}
-              </option>
-            ))}
-          </select>
-          <small className="field-hint">
-            Mantiene separadas las especies probables de las confirmadas por el usuario.
-          </small>
-        </label>
-      )}
+            <input
+              type="checkbox"
+              checked={noneSelected}
+              onChange={clearSpecies}
+              disabled={loading}
+            />
+            Ninguna
+          </label>
 
+          {speciesOptions.length === 0 ? (
+            <span style={{ fontSize: '0.8rem', color: '#9ca3af', padding: '4px 0' }}>
+              No hay especies registradas todavia. Ve a la seccion Especies para agregar.
+            </span>
+          ) : (
+            speciesOptions.map((sp) => (
+              <label
+                key={sp.id}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={formData.confirmed_species_ids.includes(sp.id)}
+                  onChange={() => toggleSpecies(sp.id)}
+                  disabled={loading}
+                />
+                <span>
+                  <strong>{sp.common_name}</strong>
+                  {sp.scientific_name && (
+                    <em style={{ fontSize: '0.78rem', color: '#6b7280', marginLeft: '6px' }}>
+                      ({sp.scientific_name})
+                    </em>
+                  )}
+                </span>
+              </label>
+            ))
+          )}
+        </div>
+        <small style={{ color: '#6b7280', fontSize: '0.78rem', marginTop: '2px', display: 'block' }}>
+          Marca todas las que apliquen. Si no hay ninguna, deja solo "Ninguna".
+        </small>
+      </div>
+
+      {/* Acciones */}
       <div className="form-actions">
         <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? 'Guardando...' : 'Guardar'}

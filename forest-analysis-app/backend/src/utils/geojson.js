@@ -178,6 +178,16 @@ function pointInRing(point, ring) {
   return inside;
 }
 
+/**
+ * Check if a GeoJSON Point [lng, lat] is inside a GeoJSON Polygon geometry.
+ * Returns true when the point lies on an edge as well.
+ */
+export function pointInsidePolygon(pointCoords, polygonGeometry) {
+  const polygon = normalizePolygonGeometry(polygonGeometry);
+  const ring = polygon.coordinates[0];
+  return pointInRing(pointCoords, ring);
+}
+
 export function polygonIsInsidePolygon(childGeometry, parentGeometry) {
   const child = normalizePolygonGeometry(childGeometry);
   const parent = normalizePolygonGeometry(parentGeometry);

@@ -1,7 +1,7 @@
 import db from '../config/database.js';
-import { treesQueries, treeLogsQueries } from '../models/queries.js';
+import { treesQueries, treeLogsQueries, subzonesQueries, zonesQueries } from '../models/queries.js';
 import { ApiError } from '../utils/errors.js';
-import { parseJsonField, normalizePointGeometry } from '../utils/geojson.js';
+import { parseJsonField, normalizePointGeometry, pointInsidePolygon } from '../utils/geojson.js';
 
 export function formatTree(row) {
   if (!row) return null;
@@ -11,6 +11,41 @@ export function formatTree(row) {
     geometry: parseJsonField(row.geometry_geojson, row.geometry_geojson),
     geometry_geojson: undefined,
   };
+}
+
+/**
+ * Load the boundary polygon for spatial validation.
+ * Prefers the subzone polygon; falls back to the parent zone polygon.
+ */
+async function loadBoundaryForSubzone(subzoneId) {
+  const szResult = await db.query(subzonesQueries.getById, [subzoneId]);
+  if (szResult.rows.length === 0) {
+    throw new ApiError('Subzona no encontrada.', 404);
+  }
+  const subzone = szResult.rows[0];
+  const subzoneGeom = parseJsonField(subzone.geometry_geojson, null);
+
+  if (subzoneGeom && subzoneGeom.type === 'Polygon') {
+    return { boundary: subzoneGeom, label: 'subzona' };
+  }
+
+  // Fallback: use the parent zone polygon
+  const zoneResult = await db.query(zonesQueries.getById, [subzone.zone_id]);
+  if (zoneResult.rows.length === 0) {
+    return { boundary: null, label: 'zona' };
+  }
+  const zoneGeom = parseJsonField(zoneResult.rows[0].geometry_geojson, null);
+  return { boundary: zoneGeom, label: 'zona' };
+}
+
+function assertPointInsideBoundary(pointCoords, boundary, label) {
+  if (!boundary) return; // no geometry to validate against
+  if (!pointInsidePolygon(pointCoords, boundary)) {
+    throw new ApiError(
+      `Las coordenadas del arbol estan fuera de la ${label}. Ubica el punto dentro del poligono.`,
+      400
+    );
+  }
 }
 
 export async function createTree(req, res, next) {
@@ -23,6 +58,10 @@ export async function createTree(req, res, next) {
     } catch (error) {
       throw new ApiError(error.message, 400);
     }
+
+    // Spatial validation: tree must be inside subzone (or zone)
+    const { boundary, label } = await loadBoundaryForSubzone(subzone_id);
+    assertPointInsideBoundary(normalizedGeometry.coordinates, boundary, label);
 
     const result = await db.query(treesQueries.create, [
       subzone_id,
@@ -64,6 +103,16 @@ export async function createTreesBatch(req, res, next) {
       throw new ApiError('Maximo 50 arboles por lote.', 400);
     }
 
+    // Pre-load boundary once (all trees in a batch belong to the same subzone)
+    const firstSubzoneId = treesPayload[0].subzone_id;
+    let boundary = null;
+    let boundaryLabel = 'zona';
+    try {
+      const loaded = await loadBoundaryForSubzone(firstSubzoneId);
+      boundary = loaded.boundary;
+      boundaryLabel = loaded.label;
+    } catch { /* proceed without spatial check if subzone lookup fails */ }
+
     const created = [];
     const errors = [];
 
@@ -76,6 +125,9 @@ export async function createTreesBatch(req, res, next) {
         } catch (error) {
           throw new ApiError(`Arbol #${i + 1}: ${error.message}`, 400);
         }
+
+        // Spatial validation per tree
+        assertPointInsideBoundary(normalizedGeometry.coordinates, boundary, boundaryLabel);
 
         const result = await db.query(treesQueries.create, [
           item.subzone_id,
@@ -215,13 +267,27 @@ export async function createTreeLog(req, res, next) {
     
     const tree = treeResult.rows[0];
 
-    // Optional: Geographic validation for "despacho"
+    // Geographic + legal validation for "despacho"
     if (action === 'despacho') {
-       // Ideally we would do ST_Within against the subzone/zone geometry here.
-       // We can rely on the frontend to display warnings, or implement PostGIS query.
-       
        if (!tree.legal_permit) {
          throw new ApiError('No se puede despachar un arbol sin permiso legal validado.', 400);
+       }
+
+       // Spatial validation: confirm tree is still within its subzone/zone
+       const treeGeom = parseJsonField(tree.geometry_geojson, null);
+       if (treeGeom && treeGeom.coordinates) {
+         try {
+           const { boundary, label } = await loadBoundaryForSubzone(tree.subzone_id);
+           assertPointInsideBoundary(treeGeom.coordinates, boundary, label);
+         } catch (spatialError) {
+           if (spatialError instanceof ApiError && spatialError.statusCode === 400) {
+             throw new ApiError(
+               `No se puede despachar: las coordenadas del arbol estan fuera de la ${label || 'zona'}.`,
+               400
+             );
+           }
+           // Non-spatial errors (e.g. subzone not found) are non-blocking for dispatch
+         }
        }
     }
 

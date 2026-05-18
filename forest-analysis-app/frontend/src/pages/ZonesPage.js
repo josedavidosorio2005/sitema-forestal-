@@ -81,12 +81,20 @@ function ZonesPage() {
       };
 
       const response = await zonesService.update(editingZone.id, {
-        ...formData,
+        name: formData.name,
+        description: formData.description,
+        region: formData.region,
         geometry: updatedGeometry,
+        confirmed_species_ids: formData.confirmed_species_ids,
       });
       const updatedZone = response.data.data;
-      setZones((current) => current.map((zone) => (zone.id === updatedZone.id ? updatedZone : zone)));
-      setSelectedZone(updatedZone);
+      // Preserve confirmed_species_ids in local state since backend may not return it
+      const mergedZone = {
+        ...updatedZone,
+        confirmed_species_ids: formData.confirmed_species_ids,
+      };
+      setZones((current) => current.map((zone) => (zone.id === mergedZone.id ? mergedZone : zone)));
+      setSelectedZone(mergedZone);
       setEditingZone(null);
       setMessage({ type: 'success', text: 'Zona actualizada.' });
     } catch (error) {
